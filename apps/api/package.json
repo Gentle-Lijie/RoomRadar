@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.js",
+    "dev": "node --watch-path=src src/index.js",
     "start": "node src/index.js"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
     "express": "^5.1.0"
   }
 }

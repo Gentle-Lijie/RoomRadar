@@ -3,4 +3,5 @@ dist/
 .env
 .DS_Store
 coverage/
-
+output/playwright/
+.playwright-cli/

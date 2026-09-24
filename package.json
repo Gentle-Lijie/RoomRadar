@@ -5,10 +5,11 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently -k \"npm:dev --workspace @room-check/api\" \"npm:dev --workspace @room-check/web\"",
+    "dev": "concurrently -k \"npm run dev --workspace @room-check/api\" \"npm run dev --workspace @room-check/web\"",
     "dev:api": "npm run dev --workspace @room-check/api",
     "dev:web": "npm run dev --workspace @room-check/web",
-    "build": "npm run build --workspace @room-check/web"
+    "build": "npm run build --workspace @room-check/web",
+    "start": "npm start --workspace @room-check/api"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
