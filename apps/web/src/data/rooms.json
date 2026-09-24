@@ -1,0 +1,1381 @@
+[
+  {
+    "id": "%23SPLUS63BAD8",
+    "name": "Mixed Reality and Digital Heritage Centre- FHSS IC lab",
+    "fullName": "Mixed Reality and Digital Heritage Centre- FHSS IC lab (20)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 20
+  },
+  {
+    "id": "%23SPLUS63BAD9",
+    "name": "Virtual Production and Motion Capture Studio- FHSS IC lab",
+    "fullName": "Virtual Production and Motion Capture Studio- FHSS IC lab (20)",
+    "building": "Trent Building",
+    "capacity": 20
+  },
+  {
+    "id": "Trent- 405",
+    "name": "Architecture Studio",
+    "fullName": "Architecture Studio (70)",
+    "building": "Trent Building",
+    "capacity": 70
+  },
+  {
+    "id": "PB-106",
+    "name": "Portland Building-Seminar Room 106 - Level 1",
+    "fullName": "Portland Building-Seminar Room 106 - Level 1 (22)",
+    "building": "Portland Building",
+    "capacity": 22
+  },
+  {
+    "id": "PB-211",
+    "name": "Portland Building-Seminar Room 211 - Level 2",
+    "fullName": "Portland Building-Seminar Room 211 - Level 2 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-227",
+    "name": "Portland Building-Seminar Room 227 - Level 2",
+    "fullName": "Portland Building-Seminar Room 227 - Level 2 (35)",
+    "building": "Portland Building",
+    "capacity": 35
+  },
+  {
+    "id": "PB-228",
+    "name": "Portland Building-Teaching Computer Room -228 Level 2",
+    "fullName": "Portland Building-Teaching Computer Room -228 Level 2 (35)",
+    "building": "Portland Building",
+    "capacity": 35
+  },
+  {
+    "id": "PB-313",
+    "name": "Portland Building-Seminar Room 313 - Level 3",
+    "fullName": "Portland Building-Seminar Room 313 - Level 3 (60)",
+    "building": "Portland Building",
+    "capacity": 60
+  },
+  {
+    "id": "PB-315",
+    "name": "Portland Building-Seminar Room 315 - Level 3",
+    "fullName": "Portland Building-Seminar Room 315 - Level 3 (60)",
+    "building": "Portland Building",
+    "capacity": 60
+  },
+  {
+    "id": "PB-411",
+    "name": "Portland Building-Seminar Room 411 - Level 4",
+    "fullName": "Portland Building-Seminar Room 411 - Level 4 (18)",
+    "building": "Portland Building",
+    "capacity": 18
+  },
+  {
+    "id": "PB-412",
+    "name": "Portland Building-Seminar Room 412 - Level 4",
+    "fullName": "Portland Building-Seminar Room 412 - Level 4 (54)",
+    "building": "Portland Building",
+    "capacity": 54
+  },
+  {
+    "id": "IAMET-408",
+    "name": "IAMET-408",
+    "fullName": "IAMET-408 (20)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 20
+  },
+  {
+    "id": "IAMET-326",
+    "name": "IAMET-326",
+    "fullName": "IAMET-326 (144)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 144
+  },
+  {
+    "id": "D.H Lawrence Auditorium",
+    "name": "D.H Lawrence Auditorium",
+    "fullName": "D.H Lawrence Auditorium (977)",
+    "building": "D.H Lawrence Auditorium",
+    "capacity": 977
+  },
+  {
+    "id": "PMB-115",
+    "name": "PMB - Lab Room 115 - Level 1 - Engineering Application workshop",
+    "fullName": "PMB - Lab Room 115 - Level 1 - Engineering Application workshop (56)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 56
+  },
+  {
+    "id": "PMB-118",
+    "name": "PMB - Lab Room 118 - Level 1 - Engineering Application workshop",
+    "fullName": "PMB - Lab Room 118 - Level 1 - Engineering Application workshop (12)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 12
+  },
+  {
+    "id": "IAMET-218",
+    "name": "Aerospace Multimodal Design Studio",
+    "fullName": "Aerospace Multimodal Design Studio (77)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 77
+  },
+  {
+    "id": "IAMET-201",
+    "name": "IAMET-201",
+    "fullName": "IAMET-201 (40)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 40
+  },
+  {
+    "id": "IAMET-105",
+    "name": "IAMET-105",
+    "fullName": "IAMET-105 (6)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 6
+  },
+  {
+    "id": "dB-A04",
+    "name": "The Lord Dearing Building - Teaching Room A04",
+    "fullName": "The Lord Dearing Building - Teaching Room A04 (60)",
+    "building": "The Lord Dearing Building",
+    "capacity": 60
+  },
+  {
+    "id": "YANG_Fujia_Building-416",
+    "name": "YANG Fujia Building Seminar Room 416 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 416 - Level 4 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "PMB-217",
+    "name": "PMB Lab Room 217 - Level 2 - Clean Energy Research Lab",
+    "fullName": "PMB Lab Room 217 - Level 2 - Clean Energy Research Lab (12)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 12
+  },
+  {
+    "id": "PMB-321",
+    "name": "PMB Lab Room 321 - Level 3 - Electrical Engineering Lab",
+    "fullName": "PMB Lab Room 321 - Level 3 - Electrical Engineering Lab (24)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 24
+  },
+  {
+    "id": "DB-A05",
+    "name": "The Lord Dearing Building - Lecture Hall A05",
+    "fullName": "The Lord Dearing Building - Lecture Hall A05 (252)",
+    "building": "The Lord Dearing Building",
+    "capacity": 252
+  },
+  {
+    "id": "DB-A06",
+    "name": "The Lord Dearing Building - Teaching Room A06",
+    "fullName": "The Lord Dearing Building - Teaching Room A06 (90)",
+    "building": "The Lord Dearing Building",
+    "capacity": 90
+  },
+  {
+    "id": "DB-B01",
+    "name": "The Lord Dearing Building - Teaching Room B01",
+    "fullName": "The Lord Dearing Building - Teaching Room B01 (40)",
+    "building": "The Lord Dearing Building",
+    "capacity": 40
+  },
+  {
+    "id": "DB-B04",
+    "name": "The Lord Dearing Building - Teaching Room B04",
+    "fullName": "The Lord Dearing Building - Teaching Room B04 (30)",
+    "building": "The Lord Dearing Building",
+    "capacity": 30
+  },
+  {
+    "id": "DB-B05",
+    "name": "The Lord Dearing Building - Teaching Room B05",
+    "fullName": "The Lord Dearing Building - Teaching Room B05 (120)",
+    "building": "The Lord Dearing Building",
+    "capacity": 120
+  },
+  {
+    "id": "DB-C01",
+    "name": "The Lord Dearing Building - Teaching Room C01",
+    "fullName": "The Lord Dearing Building - Teaching Room C01 (30)",
+    "building": "The Lord Dearing Building",
+    "capacity": 30
+  },
+  {
+    "id": "DB-C04",
+    "name": "The Lord Dearing Building - Teaching Room C04",
+    "fullName": "The Lord Dearing Building - Teaching Room C04 (48)",
+    "building": "The Lord Dearing Building",
+    "capacity": 48
+  },
+  {
+    "id": "DB-C05",
+    "name": "The Lord Dearing Building - Teaching Room C05",
+    "fullName": "The Lord Dearing Building - Teaching Room C05 (160)",
+    "building": "The Lord Dearing Building",
+    "capacity": 160
+  },
+  {
+    "id": "DB-C06",
+    "name": "The Lord Dearing Building - Teaching Room C06",
+    "fullName": "The Lord Dearing Building - Teaching Room C06 (90)",
+    "building": "The Lord Dearing Building",
+    "capacity": 90
+  },
+  {
+    "id": "DB-C08",
+    "name": "The Lord Dearing Building - Teaching Room C08",
+    "fullName": "The Lord Dearing Building - Teaching Room C08 (24)",
+    "building": "The Lord Dearing Building",
+    "capacity": 24
+  },
+  {
+    "id": "DB-C07",
+    "name": "The Lord Dearing Building - Teaching Room C07",
+    "fullName": "The Lord Dearing Building - Teaching Room C07 (20)",
+    "building": "The Lord Dearing Building",
+    "capacity": 20
+  },
+  {
+    "id": "DB-C09",
+    "name": "The Lord Dearing Building - Teaching Room C09",
+    "fullName": "The Lord Dearing Building - Teaching Room C09 (24)",
+    "building": "The Lord Dearing Building",
+    "capacity": 24
+  },
+  {
+    "id": "PB-112",
+    "name": "Portland Building-Seminar Room 112 - Level 1",
+    "fullName": "Portland Building-Seminar Room 112 - Level 1 (24)",
+    "building": "Portland Building",
+    "capacity": 24
+  },
+  {
+    "id": "PMB-322",
+    "name": "PMB Lab Room 322 - Level 3 - Electrical Engineering Lab",
+    "fullName": "PMB Lab Room 322 - Level 3 - Electrical Engineering Lab (20)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 20
+  },
+  {
+    "id": "PMB-216",
+    "name": "PMB Lab Room 216- Level 2 -beam vibiration, water tank control",
+    "fullName": "PMB Lab Room 216- Level 2 -beam vibiration, water tank control (10)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 10
+  },
+  {
+    "id": "IAMET-119",
+    "name": "IAMET-119 - Metrology Workshop",
+    "fullName": "IAMET-119 - Metrology Workshop (8)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 8
+  },
+  {
+    "id": "PMB-301",
+    "name": "PMB Studio 301 - Level 3 - Priority by Faculty Office of  Science and Engineering (Arch/ME) - Dry lab in Autumns and final year project in Springs(Timetabling via TS).",
+    "fullName": "PMB Studio 301 - Level 3 - Priority by Faculty Office of  Science and Engineering (Arch/ME) - Dry lab in Autumns and final year project in Springs(Timetabling via TS). (32)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 32
+  },
+  {
+    "id": "YANG_Fujia_Building-104",
+    "name": "YANG Fujia Building Seminar Room 104- Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 104- Level 1 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-105",
+    "name": "YANG Fujia Building Seminar Room 105- Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 105- Level 1 (42)",
+    "building": "YANG Fujia Building",
+    "capacity": 42
+  },
+  {
+    "id": "YANG_Fujia_Building-209",
+    "name": "YANG Fujia Building Seminar Room 209 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 209 - Level 2 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-210",
+    "name": "YANG Fujia Building Seminar Room 210 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 210 - Level 2 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-403",
+    "name": "YANG Fujia Building Seminar Room 403 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 403 - Level 4 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-404",
+    "name": "YANG Fujia Building Seminar Room 404 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 404 - Level 4 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-405",
+    "name": "YANG Fujia Building Seminar Room 405 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 405 - Level 4 (51)",
+    "building": "YANG Fujia Building",
+    "capacity": 51
+  },
+  {
+    "id": "DB-A01",
+    "name": "The Lord Dearing Building - Teaching Room A01",
+    "fullName": "The Lord Dearing Building - Teaching Room A01 (30)",
+    "building": "The Lord Dearing Building",
+    "capacity": 30
+  },
+  {
+    "id": "IAMET-202",
+    "name": "IAMET-202 (Aerospace Project Room)",
+    "fullName": "IAMET-202 (Aerospace Project Room) (40)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 40
+  },
+  {
+    "id": "PMB-103",
+    "name": "PMB Lab Room 103 - Level 1-Civil Engineering Lab",
+    "fullName": "PMB Lab Room 103 - Level 1-Civil Engineering Lab (20)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-113",
+    "name": "YANG Fujia Building Seminar Room 113 - Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 113 - Level 1 (16)",
+    "building": "YANG Fujia Building",
+    "capacity": 16
+  },
+  {
+    "id": "YANG_Fujia_Building-101",
+    "name": "YANG Fujia Building Seminar Room 101- Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 101- Level 1 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-102",
+    "name": "YANG Fujia Building Seminar Room 102- Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 102- Level 1 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-103",
+    "name": "YANG Fujia Building Seminar Room 103- Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 103- Level 1 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-401",
+    "name": "YANG Fujia Building Seminar Room 401 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 401 - Level 4 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-402",
+    "name": "YANG Fujia Building Seminar Room 402 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 402 - Level 4 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "Auditorium",
+    "name": "Siyuan Auditorium",
+    "fullName": "Siyuan Auditorium (514)",
+    "building": "Siyuan Auditorium",
+    "capacity": 514
+  },
+  {
+    "id": "PB-219",
+    "name": "Portland Building-Seminar Room 219 - Level 2",
+    "fullName": "Portland Building-Seminar Room 219 - Level 2 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-217",
+    "name": "Portland Building-Seminar Room 217 - Level 2",
+    "fullName": "Portland Building-Seminar Room 217 - Level 2 (16)",
+    "building": "Portland Building",
+    "capacity": 16
+  },
+  {
+    "id": "PB-218",
+    "name": "Portland Building-Seminar Room 218- Level 2",
+    "fullName": "Portland Building-Seminar Room 218- Level 2 (16)",
+    "building": "Portland Building",
+    "capacity": 16
+  },
+  {
+    "id": "PB-307",
+    "name": "Portland Building-Seminar Room 307 - Level 3",
+    "fullName": "Portland Building-Seminar Room 307 - Level 3 (22)",
+    "building": "Portland Building",
+    "capacity": 22
+  },
+  {
+    "id": "PB-308",
+    "name": "Portland Building-Seminar Room 308 - Level 3",
+    "fullName": "Portland Building-Seminar Room 308 - Level 3 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-310",
+    "name": "Portland Building-Seminar Room 310 - Level 3",
+    "fullName": "Portland Building-Seminar Room 310 - Level 3 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-311",
+    "name": "Portland Building-Seminar Room 311 - Level 3",
+    "fullName": "Portland Building-Seminar Room 311 - Level 3 (18)",
+    "building": "Portland Building",
+    "capacity": 18
+  },
+  {
+    "id": "PB-328",
+    "name": "Portland Building-Seminar Room 328 - Level 3",
+    "fullName": "Portland Building-Seminar Room 328 - Level 3 (18)",
+    "building": "Portland Building",
+    "capacity": 18
+  },
+  {
+    "id": "PB-205",
+    "name": "Portland Building-Seminar Room 205 - Level 2",
+    "fullName": "Portland Building-Seminar Room 205 - Level 2 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-407",
+    "name": "Portland Building-Seminar Room 407 - Level 4",
+    "fullName": "Portland Building-Seminar Room 407 - Level 4 (22)",
+    "building": "Portland Building",
+    "capacity": 22
+  },
+  {
+    "id": "PB-204",
+    "name": "Portland Building-Seminar Room 204 - Level 2",
+    "fullName": "Portland Building-Seminar Room 204 - Level 2 (30)",
+    "building": "Portland Building",
+    "capacity": 30
+  },
+  {
+    "id": "PB-410",
+    "name": "Portland Building-Seminar Room 410 - Level 4",
+    "fullName": "Portland Building-Seminar Room 410 - Level 4 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-416",
+    "name": "Portland Building-Seminar Room 416 - Level 4",
+    "fullName": "Portland Building-Seminar Room 416 - Level 4 (18)",
+    "building": "Portland Building",
+    "capacity": 18
+  },
+  {
+    "id": "PB-114",
+    "name": "Portland Building-Seminar Room 114 - Level 1",
+    "fullName": "Portland Building-Seminar Room 114 - Level 1 (30)",
+    "building": "Portland Building",
+    "capacity": 30
+  },
+  {
+    "id": "PB-115",
+    "name": "Portland Building-Seminar Room 115 - Level 1",
+    "fullName": "Portland Building-Seminar Room 115 - Level 1 (30)",
+    "building": "Portland Building",
+    "capacity": 30
+  },
+  {
+    "id": "PB-101",
+    "name": "Portland Building-Seminar Room 101 - Level 1",
+    "fullName": "Portland Building-Seminar Room 101 - Level 1 (30)",
+    "building": "Portland Building",
+    "capacity": 30
+  },
+  {
+    "id": "PB-207",
+    "name": "Portland Building-Seminar Room 207 - Level 2",
+    "fullName": "Portland Building-Seminar Room 207 - Level 2 (18)",
+    "building": "Portland Building",
+    "capacity": 18
+  },
+  {
+    "id": "PB-213",
+    "name": "Portland Building-Seminar Room 213 - Level 2",
+    "fullName": "Portland Building-Seminar Room 213 - Level 2 (22)",
+    "building": "Portland Building",
+    "capacity": 22
+  },
+  {
+    "id": "PB-214",
+    "name": "Portland Building-Seminar Room 214 - Level 2",
+    "fullName": "Portland Building-Seminar Room 214 - Level 2 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-220",
+    "name": "Portland Building-Seminar Room 220 - Level 2",
+    "fullName": "Portland Building-Seminar Room 220 - Level 2 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-225",
+    "name": "Portland Building-Seminar Room 225 - Level 2",
+    "fullName": "Portland Building-Seminar Room 225 - Level 2 (18)",
+    "building": "Portland Building",
+    "capacity": 18
+  },
+  {
+    "id": "PB-226",
+    "name": "Portland Building-Teaching Computer Room -226 Level 2",
+    "fullName": "Portland Building-Teaching Computer Room -226 Level 2 (72)",
+    "building": "Portland Building",
+    "capacity": 72
+  },
+  {
+    "id": "PB-312",
+    "name": "Portland Building-Seminar Room 312 - Level 3",
+    "fullName": "Portland Building-Seminar Room 312 - Level 3 (56)",
+    "building": "Portland Building",
+    "capacity": 56
+  },
+  {
+    "id": "PB-329",
+    "name": "Portland Building-Lecture Room 329 - Level 3",
+    "fullName": "Portland Building-Lecture Room 329 - Level 3 (276)",
+    "building": "Portland Building",
+    "capacity": 276
+  },
+  {
+    "id": "PB-330",
+    "name": "Portland Building-Teaching Computer Room-330 - Level 3",
+    "fullName": "Portland Building-Teaching Computer Room-330 - Level 3 (24)",
+    "building": "Portland Building",
+    "capacity": 24
+  },
+  {
+    "id": "PB-331",
+    "name": "Portland Building-Teaching Computer Room-331 -Level 3",
+    "fullName": "Portland Building-Teaching Computer Room-331 -Level 3 (35)",
+    "building": "Portland Building",
+    "capacity": 35
+  },
+  {
+    "id": "PB-413",
+    "name": "Portland Building-Teaching Computer room-413 - Level 4",
+    "fullName": "Portland Building-Teaching Computer room-413 - Level 4 (24)",
+    "building": "Portland Building",
+    "capacity": 24
+  },
+  {
+    "id": "PB-414",
+    "name": "Portland Building-Computer Lab 414 - Level 4",
+    "fullName": "Portland Building-Computer Lab 414 - Level 4 (36)",
+    "building": "Portland Building",
+    "capacity": 36
+  },
+  {
+    "id": "PB-415",
+    "name": "Portland Building-Teaching Computer Room-415 - Level 4",
+    "fullName": "Portland Building-Teaching Computer Room-415 - Level 4 (36)",
+    "building": "Portland Building",
+    "capacity": 36
+  },
+  {
+    "id": "PB-418",
+    "name": "Portland Building-Seminar Room 418 - Level 4",
+    "fullName": "Portland Building-Seminar Room 418 - Level 4 (48)",
+    "building": "Portland Building",
+    "capacity": 48
+  },
+  {
+    "id": "YANG_Fujia_Building-109",
+    "name": "YANG Fujia Building Seminar Room 109 - Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 109 - Level 1 (40)",
+    "building": "YANG Fujia Building",
+    "capacity": 40
+  },
+  {
+    "id": "YANG_Fujia_Building-110",
+    "name": "YANG Fujia Building Seminar Room 110 - Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 110 - Level 1 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-112",
+    "name": "YANG Fujia Building Seminar Room 112 - Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 112 - Level 1 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-118",
+    "name": "YANG Fujia Building Lecture Hall 118 - Level 1",
+    "fullName": "YANG Fujia Building Lecture Hall 118 - Level 1 (108)",
+    "building": "YANG Fujia Building",
+    "capacity": 108
+  },
+  {
+    "id": "YANG_Fujia_Building-119",
+    "name": "YANG Fujia Building Seminar Room 119 - Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 119 - Level 1 (41)",
+    "building": "YANG Fujia Building",
+    "capacity": 41
+  },
+  {
+    "id": "YANG_Fujia_Building-120",
+    "name": "YANG Fujia Building Seminar Room 120 - Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 120 - Level 1 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-211",
+    "name": "YANG Fujia Building Seminar Room 211 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 211 - Level 2 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-215",
+    "name": "YANG Fujia Building Seminar Room 215 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 215 - Level 2 (22)",
+    "building": "YANG Fujia Building",
+    "capacity": 22
+  },
+  {
+    "id": "YANG_Fujia_Building-219",
+    "name": "YANG Fujia Building Seminar Room 219 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 219 - Level 2 (18)",
+    "building": "YANG Fujia Building",
+    "capacity": 18
+  },
+  {
+    "id": "YANG_Fujia_Building-220",
+    "name": "YANG Fujia Building Seminar Room 220 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 220 - Level 2 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-221",
+    "name": "YANG Fujia Building Seminar Room 221 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 221 - Level 2 (18)",
+    "building": "YANG Fujia Building",
+    "capacity": 18
+  },
+  {
+    "id": "YANG_Fujia_Building-224",
+    "name": "YANG Fujia Building Seminar Room 224 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 224 - Level 2 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-225",
+    "name": "YANG Fujia Building Seminar Room 225 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 225 - Level 2 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-226",
+    "name": "YANG Fujia Building Lecture Hall 226 - Level 2",
+    "fullName": "YANG Fujia Building Lecture Hall 226 - Level 2 (108)",
+    "building": "YANG Fujia Building",
+    "capacity": 108
+  },
+  {
+    "id": "YANG_Fujia_Building-227",
+    "name": "YANG Fujia Building Seminar Room 227 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 227 - Level 2 (41)",
+    "building": "YANG Fujia Building",
+    "capacity": 41
+  },
+  {
+    "id": "YANG_Fujia_Building-228",
+    "name": "YANG Fujia Building Seminar Room 228 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 228 - Level 2 (36)",
+    "building": "YANG Fujia Building",
+    "capacity": 36
+  },
+  {
+    "id": "YANG_Fujia_Building-316",
+    "name": "YANG Fujia Building Interpretetation Room 316 - Level 3",
+    "fullName": "YANG Fujia Building Interpretetation Room 316 - Level 3 (26)",
+    "building": "YANG Fujia Building",
+    "capacity": 26
+  },
+  {
+    "id": "YANG_Fujia_Building-317",
+    "name": "YANG Fujia Building Seminar Room 317 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 317 - Level 3 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-318",
+    "name": "YANG Fujia Building Seminar Room 318 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 318 - Level 3 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-319",
+    "name": "YANG Fujia Building Seminar Room 319 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 319 - Level 3 (22)",
+    "building": "YANG Fujia Building",
+    "capacity": 22
+  },
+  {
+    "id": "YANG_Fujia_Building-114",
+    "name": "YANG Fujia Building Seminar Room 114 - Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 114 - Level 1 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-323",
+    "name": "YANG Fujia Building Seminar Room 323 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 323 - Level 3 (16)",
+    "building": "YANG Fujia Building",
+    "capacity": 16
+  },
+  {
+    "id": "YANG_Fujia_Building-324",
+    "name": "YANG Fujia Building Seminar Room 324 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 324 - Level 3 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-328",
+    "name": "YANG Fujia Building Seminar Room 328 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 328 - Level 3 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-329",
+    "name": "YANG Fujia Building Tiered Lectue Theatre 329 - Level 3",
+    "fullName": "YANG Fujia Building Tiered Lectue Theatre 329 - Level 3 (276)",
+    "building": "YANG Fujia Building",
+    "capacity": 276
+  },
+  {
+    "id": "YANG_Fujia_Building-330",
+    "name": "YANG Fujia Building Seminar Room 330 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 330 - Level 3 (41)",
+    "building": "YANG Fujia Building",
+    "capacity": 41
+  },
+  {
+    "id": "YANG_Fujia_Building-331",
+    "name": "YANG Fujia Building Seminar Room 331 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 331 - Level 3 (36)",
+    "building": "YANG Fujia Building",
+    "capacity": 36
+  },
+  {
+    "id": "YANG_Fujia_Building-406",
+    "name": "YANG Fujia Building Seminar Room 406 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 406 - Level 4 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-407",
+    "name": "YANG Fujia Building Seminar Room 407 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 407 - Level 4 (22)",
+    "building": "YANG Fujia Building",
+    "capacity": 22
+  },
+  {
+    "id": "YANG_Fujia_Building-408",
+    "name": "YANG Fujia Building Seminar Room 408 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 408 - Level 4 (22)",
+    "building": "YANG Fujia Building",
+    "capacity": 22
+  },
+  {
+    "id": "YANG_Fujia_Building-325",
+    "name": "YANG Fujia Building Seminar Room 325 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 325 - Level 3 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-412",
+    "name": "YANG Fujia Building Seminar Room 412 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 412 - Level 4 (16)",
+    "building": "YANG Fujia Building",
+    "capacity": 16
+  },
+  {
+    "id": "YANG_Fujia_Building-413",
+    "name": "YANG Fujia Building Seminar Room 413 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 413 - Level 4 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-417",
+    "name": "YANG Fujia Building Seminar Room 417 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 417 - Level 4 (18)",
+    "building": "YANG Fujia Building",
+    "capacity": 18
+  },
+  {
+    "id": "YANG_Fujia_Building-418",
+    "name": "YANG Fujia Building Seminar Room 418 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 418 - Level 4 (41)",
+    "building": "YANG Fujia Building",
+    "capacity": 41
+  },
+  {
+    "id": "YANG_Fujia_Building-419",
+    "name": "YANG Fujia Building Seminar Room 419 - Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 419 - Level 4 (36)",
+    "building": "YANG Fujia Building",
+    "capacity": 36
+  },
+  {
+    "id": "PMB-106",
+    "name": "PMB Lab Room 106 - Level 1 - Chemical Engineering lab",
+    "fullName": "PMB Lab Room 106 - Level 1 - Chemical Engineering lab (36)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 36
+  },
+  {
+    "id": "PMB-110",
+    "name": "PMB Lab Room 110 - Level 1 - Analysis Lab",
+    "fullName": "PMB Lab Room 110 - Level 1 - Analysis Lab (24)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 24
+  },
+  {
+    "id": "PMB-206",
+    "name": "PMB Lab Room 206 - Level 2 - Model Workshop",
+    "fullName": "PMB Lab Room 206 - Level 2 - Model Workshop (20)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 20
+  },
+  {
+    "id": "PMB-402",
+    "name": "PMB Lab Room 402 - Level 4 - Priority by Faculty Office of  Science and Engineering",
+    "fullName": "PMB Lab Room 402 - Level 4 - Priority by Faculty Office of  Science and Engineering (10)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 10
+  },
+  {
+    "id": "IAMET-407",
+    "name": "IAMET-407-NUBS Finance Lab",
+    "fullName": "IAMET-407-NUBS Finance Lab (50)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 50
+  },
+  {
+    "id": "PMB-215",
+    "name": "PMB Lab Room 215 - Level 2 - Open Plan Research Lab",
+    "fullName": "PMB Lab Room 215 - Level 2 - Open Plan Research Lab (18)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 18
+  },
+  {
+    "id": "PMB-302",
+    "name": "PMB Architecture Studio 302 - Level 3 - Priority by Faculty Office of  Science and Engineering (Architecture)",
+    "fullName": "PMB Architecture Studio 302 - Level 3 - Priority by Faculty Office of  Science and Engineering (Architecture) (54)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 54
+  },
+  {
+    "id": "PMB-112",
+    "name": "PMB Lab Room 112 - Level 1 - Analysis Lab-XRD LCMS",
+    "fullName": "PMB Lab Room 112 - Level 1 - Analysis Lab-XRD LCMS (6)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 6
+  },
+  {
+    "id": "PB-216",
+    "name": "Portland Building-Seminar Room 216 - Level 2",
+    "fullName": "Portland Building-Seminar Room 216 - Level 2 (56)",
+    "building": "Portland Building",
+    "capacity": 56
+  },
+  {
+    "id": "PMB-108",
+    "name": "PMB Lab Room 108 - Level 1 - Chemisty Lab",
+    "fullName": "PMB Lab Room 108 - Level 1 - Chemisty Lab (24)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 24
+  },
+  {
+    "id": "IAMET-103",
+    "name": "IAMET-103",
+    "fullName": "IAMET-103 (18)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 18
+  },
+  {
+    "id": "PMB-116",
+    "name": "PMB - Lab Room 116 - Level 1 - Engineering Application workshop",
+    "fullName": "PMB - Lab Room 116 - Level 1 - Engineering Application workshop (18)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 18
+  },
+  {
+    "id": "PMB-122",
+    "name": "PMB Lab Room 122 - Level 1 - Chemical Engineering lab",
+    "fullName": "PMB Lab Room 122 - Level 1 - Chemical Engineering lab (20)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 20
+  },
+  {
+    "id": "PMB-202",
+    "name": "PMB Lab Room 202 - Level 2 - Geotechic Lab",
+    "fullName": "PMB Lab Room 202 - Level 2 - Geotechic Lab (20)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 20
+  },
+  {
+    "id": "PMB-203",
+    "name": "PMB Lab Room 203 - Level 2 - Environmental Science Lab",
+    "fullName": "PMB Lab Room 203 - Level 2 - Environmental Science Lab (20)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 20
+  },
+  {
+    "id": "PMB-207",
+    "name": "PMB Lab Room 207 - Level 2 - Electrical Engineering Lab",
+    "fullName": "PMB Lab Room 207 - Level 2 - Electrical Engineering Lab (40)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 40
+  },
+  {
+    "id": "PMB-208",
+    "name": "PMB Lab Room 208 - Level 2 - Electrical engineering lab &Physics Lab",
+    "fullName": "PMB Lab Room 208 - Level 2 - Electrical engineering lab &Physics Lab (40)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 40
+  },
+  {
+    "id": "PMB-212",
+    "name": "PMB Lab Room 212 - Level 2 - Thermofluid Lab",
+    "fullName": "PMB Lab Room 212 - Level 2 - Thermofluid Lab (24)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 24
+  },
+  {
+    "id": "PMB-213",
+    "name": "PMB Lab Room 213 - Level 2 - Chemisty Lab",
+    "fullName": "PMB Lab Room 213 - Level 2 - Chemisty Lab (40)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 40
+  },
+  {
+    "id": "PMB-432",
+    "name": "PMB Flat Lecture Room 432 - Level 4 - Priority by Faculty Office of  Science and Engineering (20 comp FoSE only)",
+    "fullName": "PMB Flat Lecture Room 432 - Level 4 - Priority by Faculty Office of  Science and Engineering (20 comp FoSE only) (84)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 84
+  },
+  {
+    "id": "PMB-306",
+    "name": "PMB Computer Teaching Room 306 - Level 3 - Priority by Faculty Office of  Science and Engineering",
+    "fullName": "PMB Computer Teaching Room 306 - Level 3 - Priority by Faculty Office of  Science and Engineering (72)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 72
+  },
+  {
+    "id": "PMB-309",
+    "name": "PMB Computer Teaching Room 309 - Level 3 - Priority by Faculty Office of  Science and Engineering",
+    "fullName": "PMB Computer Teaching Room 309 - Level 3 - Priority by Faculty Office of  Science and Engineering (32)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 32
+  },
+  {
+    "id": "PB-203",
+    "name": "Portland Building-Seminar Room 203 - Level 2",
+    "fullName": "Portland Building-Seminar Room 203 - Level 2 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-201",
+    "name": "Portland Building-Seminar Room 201 - Level 2",
+    "fullName": "Portland Building-Seminar Room 201 - Level 2 (30)",
+    "building": "Portland Building",
+    "capacity": 30
+  },
+  {
+    "id": "PMB-433",
+    "name": "PMB Flat Room 433 - Level 4 - Priority by Faculty Office of  Science and Engineering (12 computers)",
+    "fullName": "PMB Flat Room 433 - Level 4 - Priority by Faculty Office of  Science and Engineering (12 computers) (12)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 12
+  },
+  {
+    "id": "PMB-303",
+    "name": "PMB Room 303-1 Level 3 - Priority by Faculty Office of  Science and Engineering",
+    "fullName": "PMB Room 303-1 Level 3 - Priority by Faculty Office of  Science and Engineering (52)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 52
+  },
+  {
+    "id": "PMB-117",
+    "name": "PMB Lab Room 117",
+    "fullName": "PMB Lab Room 117 (20)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 20
+  },
+  {
+    "id": "%23SPLUSCA815F",
+    "name": "PMB Lab Room 109 - Level 1 - Chemisty Lab",
+    "fullName": "PMB Lab Room 109 - Level 1 - Chemisty Lab (24)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 24
+  },
+  {
+    "id": "PMB-338",
+    "name": "PMB Lab Room 338 - Level 3 - Civil Engi lab",
+    "fullName": "PMB Lab Room 338 - Level 3 - Civil Engi lab (20)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 20
+  },
+  {
+    "id": "IAMET-121",
+    "name": "IAMET-121",
+    "fullName": "IAMET-121 (99)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 99
+  },
+  {
+    "id": "IAMET-204",
+    "name": "IAMET-204 (Aerospace Project Room)",
+    "fullName": "IAMET-204 (Aerospace Project Room) (40)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 40
+  },
+  {
+    "id": "PB-102",
+    "name": "Portland Building-Seminar Room 102 - Level 1",
+    "fullName": "Portland Building-Seminar Room 102 - Level 1 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-103",
+    "name": "Portland Building-Seminar Room 103 - Level 1",
+    "fullName": "Portland Building-Seminar Room 103 - Level 1 (36)",
+    "building": "Portland Building",
+    "capacity": 36
+  },
+  {
+    "id": "IAMET-405",
+    "name": "IAMET-405",
+    "fullName": "IAMET-405 (64)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 64
+  },
+  {
+    "id": "PB-109",
+    "name": "Portland Building-Seminar Room 109 - Level 1",
+    "fullName": "Portland Building-Seminar Room 109 - Level 1 (54)",
+    "building": "Portland Building",
+    "capacity": 54
+  },
+  {
+    "id": "PB-110",
+    "name": "Portland Building-Seminar Room 110 - Level 1",
+    "fullName": "Portland Building-Seminar Room 110 - Level 1 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-113",
+    "name": "Portland Building-Seminar Room 113- Level 1",
+    "fullName": "Portland Building-Seminar Room 113- Level 1 (42)",
+    "building": "Portland Building",
+    "capacity": 42
+  },
+  {
+    "id": "YANG_Fujia_Building-107",
+    "name": "YANG Fujia Building Seminar Room 107- Level 1",
+    "fullName": "YANG Fujia Building Seminar Room 107- Level 1 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-326",
+    "name": "YANG Fujia Building Seminar Room 326 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 326 - Level 3 (56)",
+    "building": "YANG Fujia Building",
+    "capacity": 56
+  },
+  {
+    "id": "YANG_Fujia_Building-415",
+    "name": "YANG Fujia Building Seminar Room 415- Level 4",
+    "fullName": "YANG Fujia Building Seminar Room 415- Level 4 (56)",
+    "building": "YANG Fujia Building",
+    "capacity": 56
+  },
+  {
+    "id": "IAMET-406",
+    "name": "IAMET-406+ CS computing lab",
+    "fullName": "IAMET-406+ CS computing lab (124)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 124
+  },
+  {
+    "id": "IAMET-106",
+    "name": "IAMET-106 Analysis Lab",
+    "fullName": "IAMET-106 Analysis Lab (15)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 15
+  },
+  {
+    "id": "IEB-502",
+    "name": "DBA lab- NUBS computing lab",
+    "fullName": "DBA lab- NUBS computing lab (50)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 50
+  },
+  {
+    "id": "PB-116",
+    "name": "Portland Building-Seminar Room 116 - Level 1",
+    "fullName": "Portland Building-Seminar Room 116 - Level 1 (24)",
+    "building": "Portland Building",
+    "capacity": 24
+  },
+  {
+    "id": "PB-117",
+    "name": "Portland Building-Seminar Room 117 - Level 1",
+    "fullName": "Portland Building-Seminar Room 117 - Level 1 (24)",
+    "building": "Portland Building",
+    "capacity": 24
+  },
+  {
+    "id": "PDM Studio 1",
+    "name": "IAMET - Lab Room -  - PDM QY Studio",
+    "fullName": "IAMET - Lab Room -  - PDM QY Studio (50)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 50
+  },
+  {
+    "id": "PDM Studio 2",
+    "name": "IAMET - Lab Room -  - PDM PI Studio",
+    "fullName": "IAMET - Lab Room -  - PDM PI Studio (50)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 50
+  },
+  {
+    "id": "PDM Studio 3",
+    "name": "IAMET- Lab Room -  - PDM PII Studio",
+    "fullName": "IAMET- Lab Room -  - PDM PII Studio (50)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 50
+  },
+  {
+    "id": "PMB-107",
+    "name": "PMB Lab Room 107 - Level 1 - Research lab",
+    "fullName": "PMB Lab Room 107 - Level 1 - Research lab (10)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 10
+  },
+  {
+    "id": "IAMET-101",
+    "name": "IAMET-101",
+    "fullName": "IAMET-101 (18)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 18
+  },
+  {
+    "id": "PB-221",
+    "name": "Portland Building-Seminar Room 221 - Level 2",
+    "fullName": "Portland Building-Seminar Room 221 - Level 2 (24)",
+    "building": "Portland Building",
+    "capacity": 24
+  },
+  {
+    "id": "PB-222",
+    "name": "Portland Building-Seminar Room 222 - Level 2",
+    "fullName": "Portland Building-Seminar Room 222 - Level 2 (24)",
+    "building": "Portland Building",
+    "capacity": 24
+  },
+  {
+    "id": "PB-301",
+    "name": "Portland Building-Seminar Room 301 - Level 3",
+    "fullName": "Portland Building-Seminar Room 301 - Level 3 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-304",
+    "name": "Portland Building-Seminar Room 304 - Level 3",
+    "fullName": "Portland Building-Seminar Room 304 - Level 3 (20)",
+    "building": "Portland Building",
+    "capacity": 20
+  },
+  {
+    "id": "PB-302",
+    "name": "Portland Building-Seminar Room 302 - Level 3",
+    "fullName": "Portland Building-Seminar Room 302 - Level 3 (56)",
+    "building": "Portland Building",
+    "capacity": 56
+  },
+  {
+    "id": "IAMET-221",
+    "name": "IAMET-221 Motion Capture System Lab",
+    "fullName": "IAMET-221 Motion Capture System Lab (6)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 6
+  },
+  {
+    "id": "YANG_Fujia_Building-201",
+    "name": "YANG Fujia Building Seminar Room 201 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 201 - Level 2 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-202",
+    "name": "YANG Fujia Building Seminar Room 202 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 202 - Level 2 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-203",
+    "name": "YANG Fujia Building Seminar Room 203 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 203 - Level 2 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-204",
+    "name": "YANG Fujia Building Seminar Room 204 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 204 - Level 2 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-212",
+    "name": "YANG Fujia Building Seminar Room 212 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 212 - Level 2 (20)",
+    "building": "YANG Fujia Building",
+    "capacity": 20
+  },
+  {
+    "id": "YANG_Fujia_Building-222",
+    "name": "YANG Fujia Building Seminar Room 222 - Level 2",
+    "fullName": "YANG Fujia Building Seminar Room 222 - Level 2 (18)",
+    "building": "YANG Fujia Building",
+    "capacity": 18
+  },
+  {
+    "id": "YANG_Fujia_Building-301",
+    "name": "YANG Fujia Building Seminar Room 301 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 301 - Level 3 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-302",
+    "name": "YANG Fujia Building Seminar Room 302 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 302 - Level 3 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-303",
+    "name": "YANG Fujia Building Seminar Room 303 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 303 - Level 3 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "YANG_Fujia_Building-304",
+    "name": "YANG Fujia Building Seminar Room 304 - Level 3",
+    "fullName": "YANG Fujia Building Seminar Room 304 - Level 3 (30)",
+    "building": "YANG Fujia Building",
+    "capacity": 30
+  },
+  {
+    "id": "IEB-359",
+    "name": "Apple MAC lab- FHSS IC lab",
+    "fullName": "Apple MAC lab- FHSS IC lab (36)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 36
+  },
+  {
+    "id": "PMB-205",
+    "name": "PMB - Interactive Teaching Room 205 - Level 2 - Priority by Faculty Office of  Science and Engineering",
+    "fullName": "PMB - Interactive Teaching Room 205 - Level 2 - Priority by Faculty Office of  Science and Engineering (70)",
+    "building": "The Sir Peter Mansfield Building",
+    "capacity": 70
+  },
+  {
+    "id": "%23SPLUS779515",
+    "name": "Architecture Studio",
+    "fullName": "Architecture Studio (70)",
+    "building": "Trent Building",
+    "capacity": 70
+  },
+  {
+    "id": "%23SPLUS04E639",
+    "name": "Television Studio- FHSS IC lab",
+    "fullName": "Television Studio- FHSS IC lab (20)",
+    "building": "Trent Building",
+    "capacity": 20
+  },
+  {
+    "id": "%23SPLUS04E64C",
+    "name": "Dolby Atmos and DCI Cinema- FHSS IC lab",
+    "fullName": "Dolby Atmos and DCI Cinema- FHSS IC lab (20)",
+    "building": "Trent Building",
+    "capacity": 20
+  },
+  {
+    "id": "IEB-358",
+    "name": "Audio Visual Lab- FHSS IC lab",
+    "fullName": "Audio Visual Lab- FHSS IC lab (36)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 36
+  },
+  {
+    "id": "IEB-201",
+    "name": "Digital Future Lab - NUBS China lab",
+    "fullName": "Digital Future Lab - NUBS China lab (52)",
+    "building": "Sir David and Lady Susan Greenaway Building (IAMET)",
+    "capacity": 52
+  },
+  {
+    "id": "%23SPLUS5D3644",
+    "name": "CeDEX Lab - FHSS ECO lab",
+    "fullName": "CeDEX Lab - FHSS ECO lab (20)",
+    "building": "Trent Building",
+    "capacity": 20
+  }
+]

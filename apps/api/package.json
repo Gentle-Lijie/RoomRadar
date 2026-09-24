@@ -1,0 +1,12 @@
+{
+  "name": "@room-check/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

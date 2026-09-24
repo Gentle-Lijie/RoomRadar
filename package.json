@@ -1,0 +1,16 @@
+{
+  "name": "unnc-room-check",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev --workspace @room-check/api\" \"npm:dev --workspace @room-check/web\"",
+    "dev:api": "npm run dev --workspace @room-check/api",
+    "dev:web": "npm run dev --workspace @room-check/web",
+    "build": "npm run build --workspace @room-check/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
