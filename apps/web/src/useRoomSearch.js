@@ -107,10 +107,37 @@ export function useRoomSearch() {
   function cellSummary(roomId, bucket) {
     if (!isRoomLoaded(roomId)) return null;
     const events = bookingsForRoom(roomId).filter((event) => bucket.kind === 'date' ? event.date === bucket.key : event.week === bucket.key);
-    const occupied = events.reduce((sum, event) => sum + minutes(event.end) - minutes(event.start), 0) / 60;
     const option = PERIOD_OPTIONS.find((item) => item.value === periods.value);
     const dayCount = bucket.kind === 'date' ? 1 : visibleDates.value.filter((date) => weekOf(date) === bucket.key).length;
     const hours = dayCount * (option.end - option.start) / 60;
+    const eventsByDate = new Map();
+    for (const event of events) {
+      if (!eventsByDate.has(event.date)) eventsByDate.set(event.date, []);
+      eventsByDate.get(event.date).push(event);
+    }
+    const occupied = [...eventsByDate.values()].reduce((total, dateEvents) => {
+      const intervals = dateEvents
+        .map((event) => [Math.max(option.start, minutes(event.start)), Math.min(option.end, minutes(event.end))])
+        .filter(([start, end]) => end > start)
+        .sort((left, right) => left[0] - right[0]);
+      let occupiedMinutes = 0;
+      let currentStart = null;
+      let currentEnd = null;
+      for (const [start, end] of intervals) {
+        if (currentStart === null) {
+          currentStart = start;
+          currentEnd = end;
+        } else if (start <= currentEnd) {
+          currentEnd = Math.max(currentEnd, end);
+        } else {
+          occupiedMinutes += currentEnd - currentStart;
+          currentStart = start;
+          currentEnd = end;
+        }
+      }
+      if (currentStart !== null) occupiedMinutes += currentEnd - currentStart;
+      return total + occupiedMinutes / 60;
+    }, 0);
     return { count: events.length, freeHours: Math.max(0, Math.round((hours - occupied) * 10) / 10) };
   }
 
