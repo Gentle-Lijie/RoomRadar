@@ -2,6 +2,13 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import initialRooms from './data/rooms.json';
 
 const MS_DAY = 86_400_000;
+const QUERY_TRANSITIONS = {
+  idle: new Set(['loading', 'error']),
+  loading: new Set(['done', 'canceled', 'error', 'idle']),
+  done: new Set(['loading', 'idle', 'error']),
+  canceled: new Set(['loading', 'idle', 'error']),
+  error: new Set(['loading', 'idle']),
+};
 export const PERIOD_OPTIONS = [
   { value: '1-20', label: '08:00–18:00', start: 480, end: 1080 },
   { value: '1-32', label: '08:00–24:00', start: 480, end: 1440 },
@@ -52,6 +59,12 @@ export function useRoomSearch() {
   const fetchedAt = ref(null);
   let activeController = null;
   let querySequence = 0;
+
+  function transitionQuery(next) {
+    if (queryState.value === next) return;
+    if (!QUERY_TRANSITIONS[queryState.value]?.has(next)) throw new Error(`Invalid query transition: ${queryState.value} → ${next}`);
+    queryState.value = next;
+  }
 
   function weekOf(isoDate) {
     return Math.floor((Date.parse(`${isoDate}T00:00:00Z`) - Date.parse(`${academicStart.value}T00:00:00Z`)) / (7 * MS_DAY)) + 1;
@@ -220,7 +233,7 @@ export function useRoomSearch() {
       if (payload.academicStart) academicStart.value = payload.academicStart;
       if (payload.maxWeek) maxWeek.value = payload.maxWeek;
       if (payload.issues?.length) catalogError.value = payload.issues.join('; ');
-      if (directoryChanged && (queryState.value !== 'idle' || resultRooms.value.length)) invalidateQuery();
+      if (directoryChanged && queryState.value !== 'canceled' && (queryState.value !== 'idle' || resultRooms.value.length)) invalidateQuery();
     } catch (error) {
       catalogError.value = error.message;
     } finally {
@@ -233,6 +246,15 @@ export function useRoomSearch() {
     activeController = null;
   }
 
+  function cancelActiveQuery() {
+    if (queryState.value !== 'loading') return;
+    cancelQuery();
+    querySequence += 1;
+    resultRooms.value = resultRooms.value.filter((room) => Object.hasOwn(roomResults.value, room.id));
+    queryError.value = '';
+    transitionQuery('canceled');
+  }
+
   async function runQuery() {
     cancelQuery();
     const sequence = ++querySequence;
@@ -243,14 +265,14 @@ export function useRoomSearch() {
     fetchedAt.value = null;
     queryError.value = '';
     if (!canQuery.value) {
-      queryState.value = 'error';
+      transitionQuery('error');
       queryError.value = Object.values(validationErrors.value)[0];
       return;
     }
     queryDirty.value = false;
     const controller = new AbortController();
     activeController = controller;
-    queryState.value = 'loading';
+    transitionQuery('loading');
     try {
       const response = await fetch('/api/availability/stream', {
         method: 'POST',
@@ -294,15 +316,15 @@ export function useRoomSearch() {
           } else if (message.type === 'error') {
             throw new Error(message.error);
           } else if (message.type === 'done') {
-            queryState.value = 'done';
+            transitionQuery('done');
             fetchedAt.value = message.completedAt;
           }
         }
       }
-      if (sequence === querySequence && queryState.value === 'loading') queryState.value = 'done';
+      if (sequence === querySequence && queryState.value === 'loading') transitionQuery('done');
     } catch (error) {
       if (sequence !== querySequence || controller.signal.aborted) return;
-      queryState.value = 'error';
+      transitionQuery('error');
       queryError.value = error.message;
     } finally {
       if (activeController === controller) activeController = null;
@@ -318,7 +340,7 @@ export function useRoomSearch() {
     fetchedAt.value = null;
     queryDirty.value = true;
     queryError.value = canQuery.value ? '' : Object.values(validationErrors.value)[0];
-    queryState.value = canQuery.value ? 'idle' : 'error';
+    transitionQuery(canQuery.value ? 'idle' : 'error');
   }
   watch([selectedBuildings, selectedRoomIds, selectedDays, minimumCapacity, maximumCapacity, periods, timeMode], invalidateQuery);
   watch(selectedWeeks, () => { if (timeMode.value === 'week') invalidateQuery(); });
@@ -331,6 +353,6 @@ export function useRoomSearch() {
     selectedBuildings, selectedRoomIds, selectedWeeks, selectedDays, minimumCapacity, maximumCapacity, dateFrom, dateTo, periods, timeMode,
     directorySearch, capacityAscending, queryState, queryDirty, queryError, progress, fetchedAt,
     buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, matchingRooms, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
-    dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery,
+    dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery, cancelActiveQuery,
   };
 }

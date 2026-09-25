@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { ChevronDown, RotateCcw, Search, ArrowLeftRight, Info, RefreshCw, ChevronLeft, ChevronRight } from '@lucide/vue';
+import { ChevronDown, RotateCcw, Search, ArrowLeftRight, Info, RefreshCw, ChevronLeft, ChevronRight, LoaderCircle, X } from '@lucide/vue';
 
 const viewNames = ['list', 'building', 'matrix', 'capacity'];
 const view = ref(viewNames.includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'list');
@@ -29,7 +29,7 @@ const {
   selectedBuildings, selectedRoomIds, selectedWeeks, selectedDays, minimumCapacity, maximumCapacity, dateFrom, dateTo, periods, timeMode,
   directorySearch, capacityAscending, queryState, queryDirty, queryError, progress, fetchedAt,
   buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, matchingRooms, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
-  dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery,
+  dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery, cancelActiveQuery,
 } = useRoomSearch();
 const matrixDimension = ref('date');
 const matrixView = ref('timeline');
@@ -42,6 +42,13 @@ const timelineDate = ref(null);
 const weekdayNames = ['一', '二', '三', '四', '五', '六', '日'];
 const periodLabel = computed(() => PERIOD_OPTIONS.find((option) => option.value === periods.value)?.label ?? '08:00–18:00');
 const progressPercent = computed(() => progress.value.total ? Math.round(progress.value.completed / progress.value.total * 100) : null);
+const emptyResultMessage = computed(() => {
+  if (queryState.value === 'idle') return '设置筛选条件后点击“立即查询”。';
+  if (queryState.value === 'loading') return '正在等待原站返回首批教室…';
+  if (queryState.value === 'canceled') return '查询已取消，尚无已返回的教室。';
+  if (queryState.value === 'error') return queryError.value;
+  return '当前条件下没有教室。';
+});
 const matrixBuckets = computed(() => matrixDimension.value === 'date'
   ? visibleDates.value.map((date) => ({ key: date, label: shortDate(date), kind: 'date' }))
   : effectiveWeeks.value.filter((week) => visibleDates.value.some((date) => weekOf(date) === week)).map((week) => ({ key: week, label: `第 ${week} 周`, kind: 'week' })));
@@ -55,6 +62,7 @@ const timelineSlots = computed(() => {
     return { start, end: start + 30, label: `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}` };
   });
 });
+const timelineHours = computed(() => timelineSlots.value.filter((slot) => slot.start % 60 === 0));
 function minutes(time) { return Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)); }
 function slotBookings(roomId, slot) {
   if (!activeTimelineDate.value) return [];
@@ -134,6 +142,7 @@ function inspectRoom(room) {
     <div class="query-notice" role="status" aria-live="polite">
       <Info :size="14" />
       <span v-if="queryState === 'loading'">实时查询中：已返回 {{ progress.completed }} / {{ progress.total || '…' }} 间教室。更改筛选会取消旧查询。</span>
+      <span v-else-if="queryState === 'canceled'">查询已取消，保留已返回的 {{ visibleRooms.length }} / {{ progress.total }} 间教室；可再次点击“立即查询”。</span>
       <span v-else-if="queryState === 'error'">{{ queryError }}</span>
       <span v-else-if="queryState === 'done'">查询完成：{{ progress.completed }} 间教室 · {{ visibleBookings.length }} 条预约<span v-if="failedCount"> · {{ failedCount }} 间失败</span> · {{ fetchedAt ? new Date(fetchedAt).toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '' }}。课表每次查询均从原站获取。</span>
       <span v-else-if="loadingCatalog">正在从 Scientia 更新楼栋、容量和周次；可用当前目录直接查询实时课表…</span>
@@ -181,8 +190,11 @@ function inspectRoom(room) {
             <PopoverContent align="start" class="period-popover"><Button v-for="option in PERIOD_OPTIONS" :key="option.value" size="sm" :variant="periods === option.value ? 'secondary' : 'ghost'" class="period-option" @click="periods = option.value">{{ option.label }}</Button></PopoverContent>
           </Popover>
         </div>
-        <Button size="sm" class="query-action" :disabled="!rooms.length || !canQuery" @click="runQuery"><Search :size="14" /> 立即查询</Button>
-        <Button variant="ghost" size="sm" class="reset-filters" @click="resetFilters"><RotateCcw :size="14" /> 重置</Button>
+        <div class="query-actions">
+          <Button size="sm" class="query-action" :disabled="queryState === 'loading' || !rooms.length || !canQuery" @click="runQuery"><LoaderCircle v-if="queryState === 'loading'" :size="14" class="animate-spin" /><Search v-else :size="14" /> {{ queryState === 'loading' ? '查询中' : '立即查询' }}</Button>
+          <Button v-if="queryState === 'loading'" variant="outline" size="sm" class="cancel-action" @click="cancelActiveQuery"><X :size="14" /> 取消查询</Button>
+          <Button v-else variant="ghost" size="sm" class="reset-filters" @click="resetFilters"><RotateCcw :size="14" /> 重置</Button>
+        </div>
       </div>
       <div class="filter-bottom">
         <span class="filter-bottom-label">星期</span>
@@ -206,7 +218,7 @@ function inspectRoom(room) {
             <TableCell><template v-if="isRoomLoaded(room.id)"><span v-for="range in freeRanges(room.id, focusDate).slice(0, 2)" :key="range" class="free-line inline-range">{{ range }}</span><span v-if="!freeRanges(room.id, focusDate).length" class="secondary-cell">无空闲时段</span><span v-if="freeRanges(room.id, focusDate).length > 2" class="secondary-cell">+{{ freeRanges(room.id, focusDate).length - 2 }} 段</span></template><span v-else class="secondary-cell">—</span></TableCell>
             <TableCell class="number-col"><Button variant="ghost" size="sm" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room)">{{ isRoomLoaded(room.id) ? `${bookingsForRoom(room.id).length} 条 ›` : '—' }}</Button></TableCell>
           </TableRow>
-          <TableRow v-if="!visibleRooms.length"><TableCell colspan="6" class="empty-cell">{{ queryState === 'idle' ? '选择筛选条件并点击“立即查询”。' : queryState === 'loading' ? '正在获取教室目录…' : '当前条件下没有教室。' }}</TableCell></TableRow>
+          <TableRow v-if="!visibleRooms.length"><TableCell colspan="6" class="empty-cell">{{ emptyResultMessage }}</TableCell></TableRow>
         </TableBody></Table></div>
       </TabsContent>
 
@@ -215,7 +227,7 @@ function inspectRoom(room) {
         <section v-for="name in visibleBuildings" :key="name" class="building-section"><div class="building-section-head"><h3>{{ name }}</h3><span>{{ visibleRooms.filter((room) => room.building === name).length }} 间教室</span></div><Table><TableHeader><TableRow><TableHead class="room-name-col">教室</TableHead><TableHead class="number-col">容量</TableHead><TableHead>日期</TableHead><TableHead>预约时间 / 活动代码</TableHead><TableHead>空闲时间</TableHead><TableHead class="number-col">详情</TableHead></TableRow></TableHeader><TableBody>
           <TableRow v-for="room in visibleRooms.filter((item) => item.building === name)" :key="room.id"><TableCell><strong>{{ shortName(room) }}</strong><small class="code-line">{{ room.id }}</small></TableCell><TableCell class="number-col capacity-number">{{ room.capacity }}</TableCell><TableCell class="secondary-cell">{{ shortDate(focusDate) }}</TableCell><TableCell><span v-if="!isRoomLoaded(room.id)" class="secondary-cell">{{ roomError(room.id) || '查询中…' }}</span><template v-else><div v-for="booking in bookingsForRoom(room.id, focusDate).slice(0, 2)" :key="`${booking.identifier}${booking.start}`" class="dense-line">{{ booking.start }}–{{ booking.end }} <span class="booking-code">{{ booking.staff || booking.identifier }}</span></div><span v-if="!bookingsForRoom(room.id, focusDate).length" class="secondary-cell">无预约</span></template></TableCell><TableCell><span v-for="range in freeRanges(room.id, focusDate).slice(0, 2)" :key="range" class="free-line inline-range">{{ range }}</span><span v-if="!isRoomLoaded(room.id)" class="secondary-cell">—</span></TableCell><TableCell class="number-col"><Button size="xs" variant="outline" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room)">查看</Button></TableCell></TableRow>
         </TableBody></Table></section>
-        <div v-if="!visibleBuildings.length" class="empty-cell">{{ queryState === 'idle' ? '选择筛选条件并点击“立即查询”。' : '当前条件下没有教室。' }}</div>
+        <div v-if="!visibleBuildings.length" class="empty-cell">{{ emptyResultMessage }}</div>
       </TabsContent>
 
       <TabsContent value="matrix" class="view-content">
@@ -225,9 +237,9 @@ function inspectRoom(room) {
             <div class="timeline-date-nav"><Button size="icon-sm" variant="outline" aria-label="上一日期" :disabled="activeTimelineIndex <= 0" @click="moveTimelineDate(-1)"><ChevronLeft :size="14" /></Button><Popover><PopoverTrigger as-child><Button variant="outline" size="sm" :disabled="!activeTimelineDate">{{ activeTimelineDate ? `${activeTimelineDate} · ${shortDate(activeTimelineDate)}` : '没有符合筛选的日期' }}<ChevronDown :size="14" /></Button></PopoverTrigger><PopoverContent align="start" class="timeline-date-popover"><Button v-for="date in visibleDates" :key="date" variant="ghost" size="sm" class="timeline-date-option" @click="timelineDate = date">{{ date }} · {{ shortDate(date) }}</Button></PopoverContent></Popover><Button size="icon-sm" variant="outline" aria-label="下一日期" :disabled="activeTimelineIndex < 0 || activeTimelineIndex >= visibleDates.length - 1" @click="moveTimelineDate(1)"><ChevronRight :size="14" /></Button></div>
             <div class="matrix-legend"><span class="legend-busy"></span> 占用 <span class="legend-free"></span> 空闲 <span class="legend-empty"></span> 查询中或失败</div>
           </div>
-          <div class="table-panel timeline-scroll"><Table><TableHeader><TableRow><TableHead class="timeline-room-col" rowspan="2">教室 / Capacity</TableHead><TableHead :colspan="Math.max(1, timelineSlots.length)" class="timeline-date-head">{{ activeTimelineDate || '请选择日期' }}</TableHead></TableRow><TableRow><TableHead v-for="slot in timelineSlots" :key="slot.start" class="timeline-time-head">{{ slot.label }}</TableHead></TableRow></TableHeader><TableBody>
-            <TableRow v-for="room in visibleRooms" :key="room.id"><TableCell class="timeline-room-col"><strong>{{ shortName(room) }}</strong><small class="code-line">{{ room.id }} · {{ room.capacity }} 人</small></TableCell><TableCell v-for="slot in timelineSlots" :key="slot.start" class="timeline-cell"><Button variant="ghost" size="icon-xs" :class="['timeline-slot', !isRoomLoaded(room.id) ? 'timeline-pending' : slotBookings(room.id, slot).length ? 'timeline-occupied' : 'timeline-free']" :disabled="!isRoomLoaded(room.id) || !activeTimelineDate" :aria-label="`${shortName(room)} ${activeTimelineDate} ${slot.label} ${!isRoomLoaded(room.id) ? roomError(room.id) || '查询中' : slotBookings(room.id, slot).length ? `占用：${slotBookings(room.id, slot).map((booking) => booking.staff || booking.identifier).join('、')}` : '空闲'}`" :title="!isRoomLoaded(room.id) ? roomError(room.id) || '查询中' : slotBookings(room.id, slot).length ? slotBookings(room.id, slot).map((booking) => `${booking.start}–${booking.end} ${booking.staff || booking.identifier}`).join('\n') : `${slot.label} 空闲`" @click="openDetails(room, { kind: 'date', key: activeTimelineDate, label: shortDate(activeTimelineDate) }, slot)"><span class="sr-only">{{ slotBookings(room.id, slot).length ? '占用' : '空闲' }}</span></Button></TableCell></TableRow>
-            <TableRow v-if="!visibleRooms.length || !activeTimelineDate"><TableCell :colspan="Math.max(2, timelineSlots.length + 1)" class="empty-cell">{{ queryState === 'idle' ? '设置筛选条件并查询后查看半小时时间轴。' : '当前条件下没有可显示的教室或日期。' }}</TableCell></TableRow>
+          <div class="table-panel timeline-scroll"><Table><TableHeader><TableRow><TableHead class="timeline-room-col">教室 <span class="timeline-head-muted">/ 容量</span></TableHead><TableHead v-for="hour in timelineHours" :key="hour.start" colspan="2" class="timeline-hour-head">{{ hour.label }}</TableHead></TableRow></TableHeader><TableBody>
+            <TableRow v-for="room in visibleRooms" :key="room.id" class="timeline-row"><TableCell class="timeline-room-col"><strong class="timeline-room-name" :title="room.fullName">{{ shortName(room) }}</strong><small class="timeline-room-meta">{{ room.id }} · {{ room.capacity }} 人</small></TableCell><TableCell v-for="slot in timelineSlots" :key="slot.start" :class="['timeline-cell', { 'timeline-hour-start': slot.start % 60 === 0 }]"><Button variant="ghost" size="icon-xs" :class="['timeline-slot', !isRoomLoaded(room.id) ? 'timeline-pending' : slotBookings(room.id, slot).length ? 'timeline-occupied' : 'timeline-free']" :disabled="!isRoomLoaded(room.id) || !activeTimelineDate" :aria-label="`${shortName(room)} ${activeTimelineDate} ${slot.label} ${!isRoomLoaded(room.id) ? roomError(room.id) || '查询中' : slotBookings(room.id, slot).length ? `占用：${slotBookings(room.id, slot).map((booking) => booking.staff || booking.identifier).join('、')}` : '空闲'}`" :title="!isRoomLoaded(room.id) ? roomError(room.id) || '查询中' : slotBookings(room.id, slot).length ? slotBookings(room.id, slot).map((booking) => `${booking.start}–${booking.end} ${booking.staff || booking.identifier}`).join('\n') : `${slot.label} 空闲`" @click="openDetails(room, { kind: 'date', key: activeTimelineDate, label: shortDate(activeTimelineDate) }, slot)"><span class="sr-only">{{ slotBookings(room.id, slot).length ? '占用' : '空闲' }}</span></Button></TableCell></TableRow>
+            <TableRow v-if="!visibleRooms.length || !activeTimelineDate"><TableCell :colspan="Math.max(2, timelineSlots.length + 1)" class="empty-cell">{{ !activeTimelineDate ? '当前筛选没有可显示的日期。' : emptyResultMessage }}</TableCell></TableRow>
           </TableBody></Table></div>
         </div>
         <div v-else class="summary-pane"><div class="matrix-toolbar summary-toolbar"><Button size="sm" :variant="matrixDimension === 'date' ? 'secondary' : 'ghost'" @click="matrixDimension = 'date'">按日期</Button><Button size="sm" :variant="matrixDimension === 'week' ? 'secondary' : 'ghost'" @click="matrixDimension = 'week'">按周次</Button><Button size="sm" variant="outline" @click="transposed = !transposed"><ArrowLeftRight :size="14" /> 交换横纵轴</Button></div>
@@ -235,7 +247,7 @@ function inspectRoom(room) {
         <div class="table-panel matrix-scroll"><Table><TableHeader><TableRow><TableHead class="matrix-label-col">{{ transposed ? (matrixDimension === 'date' ? '日期' : '周次') : '教室 / 容量' }}</TableHead><TableHead v-for="column in transposed ? visibleRooms : matrixBuckets" :key="transposed ? column.id : column.key" class="matrix-data-col">{{ transposed ? shortName(column) : column.label }}<small v-if="transposed" class="code-line">{{ column.capacity }} 人</small></TableHead></TableRow></TableHeader><TableBody>
           <template v-if="!transposed"><TableRow v-for="room in visibleRooms" :key="room.id"><TableCell class="matrix-label-col"><strong>{{ shortName(room) }}</strong><small class="code-line">{{ room.id }} · {{ room.capacity }} 人</small></TableCell><TableCell v-for="bucket in matrixBuckets" :key="bucket.key" class="matrix-cell"><Button class="matrix-cell-button" variant="ghost" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room, bucket)"><span :class="['status-chip', !cellSummary(room.id, bucket) ? 'status-pending' : cellSummary(room.id, bucket).count ? 'status-booked' : 'status-free']">{{ !cellSummary(room.id, bucket) ? '待查询' : cellSummary(room.id, bucket).count ? `${cellSummary(room.id, bucket).count} 条预约` : '无预约' }}</span><small>{{ cellSummary(room.id, bucket) ? `空闲 ${cellSummary(room.id, bucket).freeHours}h` : '—' }}</small></Button></TableCell></TableRow></template>
           <template v-else><TableRow v-for="bucket in matrixBuckets" :key="bucket.key"><TableCell class="matrix-label-col"><strong>{{ bucket.label }}</strong><small class="code-line">{{ bucket.kind === 'week' ? '周次对比' : '日期对比' }}</small></TableCell><TableCell v-for="room in visibleRooms" :key="room.id" class="matrix-cell"><Button class="matrix-cell-button" variant="ghost" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room, bucket)"><span :class="['status-chip', !cellSummary(room.id, bucket) ? 'status-pending' : cellSummary(room.id, bucket).count ? 'status-booked' : 'status-free']">{{ !cellSummary(room.id, bucket) ? '待查询' : cellSummary(room.id, bucket).count ? `${cellSummary(room.id, bucket).count} 条预约` : '无预约' }}</span><small>{{ cellSummary(room.id, bucket) ? `空闲 ${cellSummary(room.id, bucket).freeHours}h` : '—' }}</small></Button></TableCell></TableRow></template>
-          <TableRow v-if="!matrixBuckets.length || !visibleRooms.length"><TableCell :colspan="(transposed ? visibleRooms.length : matrixBuckets.length) + 1" class="empty-cell">{{ queryState === 'idle' ? '设置筛选条件并查询。' : '请调整周次、日期或楼栋筛选。' }}</TableCell></TableRow>
+          <TableRow v-if="!matrixBuckets.length || !visibleRooms.length"><TableCell :colspan="(transposed ? visibleRooms.length : matrixBuckets.length) + 1" class="empty-cell">{{ !matrixBuckets.length ? '当前筛选没有可显示的日期或周次。' : emptyResultMessage }}</TableCell></TableRow>
         </TableBody></Table></div></div>
       </TabsContent>
 
