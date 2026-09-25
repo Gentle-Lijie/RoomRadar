@@ -3,7 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@brand/*": ["../../assests/*"]
     },
     "resolveJsonModule": true,
     "types": ["vite/client"]

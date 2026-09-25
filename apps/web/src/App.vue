@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import logoUrl from '@brand/logo-64.png';
 import { ChevronDown, RotateCcw, Search, ArrowLeftRight, Info, RefreshCw, ChevronLeft, ChevronRight, LoaderCircle, X, Building2, LogOut } from '@lucide/vue';
 
 interface MatrixBucket { key: string | number; label: string; kind: 'date' | 'week' }
@@ -192,8 +193,9 @@ function cellStatus(roomId: string, bucket: MatrixBucket) {
   <div class="app-shell">
     <header class="app-header">
       <div class="app-title">
-        <strong>UNNC 教室查询</strong>
-        <span>Room availability · {{ academicStart.slice(0, 4) }}/{{ Number(academicStart.slice(0, 4)) + 1 }}</span>
+        <img class="app-logo" :src="logoUrl" alt="RoomRadar" />
+        <strong>RoomRadar</strong>
+        <span>UNNC 教室查询 · {{ academicStart.slice(0, 4) }}/{{ Number(academicStart.slice(0, 4)) + 1 }}</span>
         <Badge variant="outline">实时课表</Badge><Badge variant="outline">{{ catalogUpdatedAt ? '目录已同步' : '目录快照' }}</Badge>
       </div>
       <div class="header-right">

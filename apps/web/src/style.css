@@ -139,6 +139,7 @@ body { margin: 0; min-width: 320px; font: 13px Inter, ui-sans-serif, system-ui, 
 .app-shell { max-width: 1600px; margin: auto; padding: 0 22px 58px; }
 .app-header { min-height: 53px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); }
 .app-title, .header-right { display: flex; align-items: center; gap: 10px; }
+.app-logo { width: 26px; height: 26px; border-radius: 6px; flex: none; }
 .app-title strong { font-size: 16px; } .app-title>span, .header-right>span { font-size: 11px; color: var(--muted-foreground); }
 .query-notice { min-height: 32px; display: flex; align-items: center; gap: 7px; color: var(--muted-foreground); font-size: 11px; }
 .query-notice svg { flex: none; }

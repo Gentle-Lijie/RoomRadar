@@ -1,4 +1,4 @@
-# UNNC Room Check
+# RoomRadar — UNNC 教室查询
 
 A lightweight room availability browser for the University of Nottingham Ningbo China.
 

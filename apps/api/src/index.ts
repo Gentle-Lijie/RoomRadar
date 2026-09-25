@@ -175,5 +175,5 @@ if (existsSync(webDist)) {
 }
 
 app.listen(port, () => {
-  console.log(`Room Check API listening on http://localhost:${port}`);
+  console.log(`RoomRadar API listening on http://localhost:${port}`);
 });
