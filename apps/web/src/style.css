@@ -178,7 +178,7 @@ body { margin: 0; min-width: 320px; font: 13px Inter, ui-sans-serif, system-ui, 
 .view-heading p { display: inline; font-size: 11px; color: var(--muted-foreground); }
 .table-panel, .building-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .table-panel [data-slot="table-container"], .building-section [data-slot="table-container"] { width: 100%; overflow-x: auto; }
-[data-slot="table"] { min-width: 800px; } [data-slot="table-header"] { background: var(--muted); }
+[data-slot="table"] { min-width: max(720px, 100%); } [data-slot="table-header"] { background: var(--muted); }
 [data-slot="table-head"] { height: 29px; padding: 5px 8px; font-size: 11px; font-weight: 650; color: var(--muted-foreground); }
 [data-slot="table-cell"] { padding: 5px 8px; font-size: 11px; vertical-align: top; white-space: normal; }
 [data-slot="table-row"] { border-color: var(--border); }
@@ -218,8 +218,9 @@ body { margin: 0; min-width: 320px; font: 13px Inter, ui-sans-serif, system-ui, 
 .timeline-date-option { width: 100%; justify-content: flex-start; }
 .timeline-toolbar .matrix-legend { margin: 0; }
 .summary-toolbar { margin: 4px 0 8px; }
-/* 时间轴表永不溢出：宽度始终等于容器，fixed 布局下教室列钉死、小时列均分剩余空间 */
-.timeline-scroll [data-slot="table"] { width: 100%; min-width: 0; table-layout: fixed; }
+/* 时间轴表：容器内放得下时铺满，放不下时按每小时 42px 的底线转为横向滚动，避免小时表头互相压缩重叠 */
+.timeline-scroll { --tl-room-col: 205px; }
+.timeline-scroll [data-slot="table"] { width: 100%; min-width: calc(var(--tl-room-col) + var(--tl-hours, 12) * 42px); table-layout: fixed; }
 .timeline-room-col { min-width: 205px; width: 205px; max-width: 205px; position: sticky; left: 0; z-index: 1; background: var(--card); border-right: 1px solid var(--border); }
 [data-slot="table-head"].timeline-room-col { z-index: 3; background: var(--muted); }
 .timeline-date-head { height: 25px !important; text-align: center; background: var(--secondary); }
@@ -279,6 +280,11 @@ body { margin: 0; min-width: 320px; font: 13px Inter, ui-sans-serif, system-ui, 
 .login-field [data-slot="input"]:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px var(--card) inset; -webkit-text-fill-color: var(--foreground); }
 .login-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .header-right [data-slot="badge"] { height: 24px; }
-.app-footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 6px 16px; background: var(--card); border-top: 1px solid var(--border); text-align: center; font-size: 11px; color: var(--muted-foreground); }
+.app-footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 6px 16px; background: var(--card); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; text-align: center; font-size: 11px; color: var(--muted-foreground); }
+.footer-link { color: var(--foreground); font-weight: 600; text-decoration: none; border-bottom: 1px solid transparent; }
+.footer-link:hover { color: var(--primary); border-bottom-color: var(--primary); }
+.footer-sep { color: var(--border); }
+.footer-github { display: inline-flex; align-items: center; gap: 4px; }
+.footer-github svg { display: block; }
 @media(max-width:1150px) { .filter-grid { grid-template-columns: repeat(4,minmax(0,1fr)); } .building-control,.query-actions { grid-column: span 2; } .view-heading { align-items: flex-start; padding: 8px 0; } .view-heading p { display: block; margin-top: 2px; } }
-@media(max-width:700px) { .timeline-room-col { min-width: 128px; width: 128px; max-width: 128px; } .app-shell { padding: 0 10px 18px; } .app-header { flex-wrap: wrap; padding: 8px 0; gap: 5px; } .app-title>span { display: none; } .header-right { width: 100%; justify-content: space-between; } .query-notice { line-height: 1.35; padding: 6px 0; } .filter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .building-control,.time-mode-control,.time-value-control,.query-actions { grid-column: span 2; } .query-actions { width: 100%; } .query-summary { width: 100%; margin-left: 0; padding: 4px 0 1px; } .view-tabs-list { width: 100%; gap: 2px; } .view-tabs-list [data-slot="tabs-trigger"] { font-size: 11px; padding: 0 4px; } .view-heading { flex-wrap: wrap; } .matrix-toolbar,.directory-actions { flex-wrap: wrap; } .directory-search { width: 100%; } }
+@media(max-width:700px) { .timeline-scroll { --tl-room-col: 128px; } .col-building,.col-room-id,.col-date { display: none; } .directory-panel [data-slot="table"] { min-width: 100%; } .timeline-room-col { min-width: 128px; width: 128px; max-width: 128px; } .app-shell { padding: 0 10px 18px; } .app-header { flex-wrap: wrap; padding: 8px 0; gap: 5px; } .app-title>span { display: none; } .header-right { width: 100%; justify-content: space-between; } .query-notice { line-height: 1.35; padding: 6px 0; } .filter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .building-control,.time-mode-control,.time-value-control,.query-actions { grid-column: span 2; } .query-actions { width: 100%; } .query-summary { width: 100%; margin-left: 0; padding: 4px 0 1px; } .view-tabs-list { width: 100%; gap: 2px; } .view-tabs-list [data-slot="tabs-trigger"] { font-size: 11px; padding: 0 4px; } .view-heading { flex-wrap: wrap; } .matrix-toolbar,.directory-actions { flex-wrap: wrap; } .directory-search { width: 100%; } }
