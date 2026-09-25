@@ -39,6 +39,22 @@ activity capacity, location, room size, Staff, time, duration, and applicable
 weeks. Staff can be blank for a booking. The detail view retains every source
 field and links to both original list and grid reports.
 
+## Meeting rooms (meetingroombooking.nottingham.edu.cn)
+
+The app can also show bookable meeting rooms alongside Scientia classrooms in
+every view. `POST /api/mrb/login` drives the campus ADFS sign-in server-side
+(credentials are forwarded to the university SSO only and never stored); if
+ADFS asks for an extra verification code the response says so and
+`POST /api/mrb/login/mfa` submits it. The returned bearer token lives in the
+browser's localStorage and is sent back through the local proxy for
+`GET /api/mrb/rooms` (space directory via the upstream
+`/v3.0/space/userPageSpace` + nodeStruct building tree) and
+`POST /api/mrb/timetable` (upstream `/v3.0/order/pageTimeTable`). Meeting-room
+IDs are prefixed `mrb:` so they never collide with Scientia IDs, their events
+are normalized into the same shape as Scientia bookings, and both channels run
+in parallel on every query. Only read endpoints are used — the proxy never
+calls booking, cancellation, or check-in APIs.
+
 ## Development
 
 ```sh

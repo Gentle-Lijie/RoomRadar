@@ -32,7 +32,9 @@ export function useRoomSearch() {
   const today = shanghaiToday();
   const initialEnd = shiftDate(today, 6);
   const initialWeek = (date) => Math.floor((Date.parse(`${date}T00:00:00Z`) - Date.parse('2026-09-21T00:00:00Z')) / (7 * MS_DAY)) + 1;
-  const rooms = ref(initialRooms);
+  const scientiaRooms = ref(initialRooms);
+  const mrbRooms = ref([]);
+  const rooms = computed(() => [...scientiaRooms.value, ...mrbRooms.value]);
   const resultRooms = ref([]);
   const roomResults = ref({});
   const academicStart = ref('2026-09-21');
@@ -59,6 +61,128 @@ export function useRoomSearch() {
   const fetchedAt = ref(null);
   let activeController = null;
   let querySequence = 0;
+
+  // ---- Meeting room booking system (SSO, token lives in localStorage) ----
+  const mrbToken = ref(localStorage.getItem('mrb.token') ?? '');
+  const mrbUser = ref(safeJsonParse(localStorage.getItem('mrb.user')));
+  const mrbLoginOpen = ref(false);
+  const mrbLoginForm = ref({ username: '', password: '' });
+  const mrbMfa = ref(null);
+  const mrbMfaCode = ref('');
+  const mrbLoginError = ref('');
+  const mrbLoggingIn = ref(false);
+  const mrbCatalogLoading = ref(false);
+  const mrbError = ref('');
+
+  function safeJsonParse(text) {
+    try { return JSON.parse(text ?? 'null'); } catch { return null; }
+  }
+
+  function applyMrbSession(payload) {
+    mrbToken.value = payload.token;
+    mrbUser.value = payload.user ?? null;
+    localStorage.setItem('mrb.token', payload.token);
+    localStorage.setItem('mrb.user', JSON.stringify(payload.user ?? null));
+    mrbLoginOpen.value = false;
+    mrbLoginForm.value.password = '';
+    mrbMfa.value = null;
+    mrbMfaCode.value = '';
+    mrbLoginError.value = '';
+    loadMrbCatalog();
+  }
+
+  function resetMrbLoginDialog() {
+    mrbMfa.value = null;
+    mrbMfaCode.value = '';
+    mrbLoginError.value = '';
+    mrbLoginForm.value.password = '';
+  }
+
+  async function loginMrb() {
+    mrbLoggingIn.value = true;
+    mrbLoginError.value = '';
+    try {
+      const response = await fetch('/api/mrb/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mrbLoginForm.value),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error ?? `登录失败（HTTP ${response.status}）`);
+      if (payload.mfaRequired) {
+        mrbMfa.value = { stateId: payload.stateId };
+        return;
+      }
+      applyMrbSession(payload);
+    } catch (error) {
+      mrbLoginError.value = error.message;
+    } finally {
+      mrbLoggingIn.value = false;
+    }
+  }
+
+  async function submitMrbMfa() {
+    mrbLoggingIn.value = true;
+    mrbLoginError.value = '';
+    try {
+      const response = await fetch('/api/mrb/login/mfa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stateId: mrbMfa.value?.stateId, code: mrbMfaCode.value }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error ?? `验证失败（HTTP ${response.status}）`);
+      applyMrbSession(payload);
+    } catch (error) {
+      mrbLoginError.value = error.message;
+      mrbMfaCode.value = '';
+    } finally {
+      mrbLoggingIn.value = false;
+    }
+  }
+
+  function disconnectMrb() {
+    mrbToken.value = '';
+    mrbUser.value = null;
+    mrbError.value = '';
+    mrbRooms.value = [];
+    localStorage.removeItem('mrb.token');
+    localStorage.removeItem('mrb.user');
+    if (queryState.value !== 'canceled' && (queryState.value !== 'idle' || resultRooms.value.length)) invalidateQuery();
+  }
+
+  async function loadMrbCatalog() {
+    if (!mrbToken.value) return;
+    mrbCatalogLoading.value = true;
+    mrbError.value = '';
+    try {
+      const response = await fetch('/api/mrb/rooms', { headers: { Authorization: `Bearer ${mrbToken.value}` }, cache: 'no-store' });
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        disconnectMrb();
+        mrbError.value = '会议室系统登录已过期，请重新连接';
+        return;
+      }
+      if (!response.ok) throw new Error(payload.error ?? `会议室目录获取失败（HTTP ${response.status}）`);
+      mrbRooms.value = payload.rooms.map((room) => ({
+        id: `mrb:${room.id}`,
+        name: room.name,
+        fullName: room.fullName,
+        building: room.building,
+        capacity: room.capacity,
+        source: 'mrb',
+        floor: room.floor,
+        spaceNo: room.spaceNo,
+        enabled: room.enabled,
+        disableReason: room.disableReason,
+      }));
+      if (queryState.value !== 'canceled' && (queryState.value !== 'idle' || resultRooms.value.length)) invalidateQuery();
+    } catch (error) {
+      mrbError.value = error.message;
+    } finally {
+      mrbCatalogLoading.value = false;
+    }
+  }
 
   function transitionQuery(next) {
     if (queryState.value === next) return;
@@ -223,11 +347,11 @@ export function useRoomSearch() {
       const response = await fetch('/api/catalog', { cache: 'no-store' });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? '教室目录查询失败');
-      const previousIds = rooms.value.map((room) => room.id).join('\u0000');
+      const previousIds = scientiaRooms.value.map((room) => room.id).join('\u0000');
       const directoryChanged = (payload.academicStart && payload.academicStart !== academicStart.value)
         || (Array.isArray(payload.rooms) && payload.rooms.map((room) => room.id).join('\u0000') !== previousIds);
       if (Array.isArray(payload.rooms)) {
-        rooms.value = payload.rooms;
+        scientiaRooms.value = payload.rooms;
         catalogUpdatedAt.value = payload.updatedAt;
       }
       if (payload.academicStart) academicStart.value = payload.academicStart;
@@ -259,6 +383,8 @@ export function useRoomSearch() {
     cancelQuery();
     const sequence = ++querySequence;
     const chosenRooms = matchingRooms.value;
+    const scientiaChosen = chosenRooms.filter((room) => !room.id.startsWith('mrb:'));
+    const mrbChosen = chosenRooms.filter((room) => room.id.startsWith('mrb:'));
     resultRooms.value = chosenRooms;
     roomResults.value = {};
     progress.value = { completed: 0, total: chosenRooms.length };
@@ -273,14 +399,28 @@ export function useRoomSearch() {
     const controller = new AbortController();
     activeController = controller;
     transitionQuery('loading');
-    try {
+
+    let scientiaCompleted = 0;
+    let mrbCompleted = 0;
+    const updateProgress = () => {
+      if (sequence === querySequence) progress.value = { completed: scientiaCompleted + mrbCompleted, total: chosenRooms.length };
+    };
+    const mergeResults = (results) => {
+      if (sequence !== querySequence) return;
+      const next = { ...roomResults.value };
+      for (const result of results) next[result.roomId] = result;
+      roomResults.value = next;
+    };
+
+    const scientiaTask = (async () => {
+      if (!scientiaChosen.length) return;
       const response = await fetch('/api/availability/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
         signal: controller.signal,
         body: JSON.stringify({
-          roomIds: chosenRooms.map((room) => room.id),
+          roomIds: scientiaChosen.map((room) => room.id),
           academicStart: academicStart.value,
           weeks: effectiveWeeks.value,
           days: selectedDays.value,
@@ -306,21 +446,58 @@ export function useRoomSearch() {
           if (!line.trim() || sequence !== querySequence) continue;
           const message = JSON.parse(line);
           if (message.type === 'meta') {
-            progress.value = { completed: 0, total: message.roomIds.length };
+            updateProgress();
           } else if (message.type === 'batch') {
-            const next = { ...roomResults.value };
-            for (const result of message.results) next[result.roomId] = result;
-            roomResults.value = next;
-            progress.value = { completed: message.completed, total: message.total };
+            mergeResults(message.results);
+            scientiaCompleted = message.completed;
+            updateProgress();
             fetchedAt.value = message.fetchedAt;
           } else if (message.type === 'error') {
             throw new Error(message.error);
-          } else if (message.type === 'done') {
-            transitionQuery('done');
-            fetchedAt.value = message.completedAt;
           }
         }
       }
+    })();
+
+    const mrbTask = (async () => {
+      if (!mrbChosen.length) return;
+      const complete = (results) => {
+        mergeResults(results);
+        mrbCompleted = mrbChosen.length;
+        updateProgress();
+      };
+      if (!mrbToken.value) {
+        complete(mrbChosen.map((room) => ({ roomId: room.id, error: '未连接会议室系统' })));
+        return;
+      }
+      const dates = visibleDates.value;
+      try {
+        const response = await fetch('/api/mrb/timetable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mrbToken.value}` },
+          cache: 'no-store',
+          signal: controller.signal,
+          body: JSON.stringify({
+            roomIds: mrbChosen.map((room) => room.id.slice(4)),
+            dateFrom: dates[0] ?? dateFrom.value,
+            dateTo: dates[dates.length - 1] ?? dateTo.value,
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error ?? `会议室查询失败（HTTP ${response.status}）`);
+        complete(payload.results.map((result) => ({
+          ...result,
+          events: result.events.map((event) => ({ ...event, week: weekOf(event.date) })),
+        })));
+        fetchedAt.value = payload.fetchedAt;
+      } catch (error) {
+        if (controller.signal.aborted || sequence !== querySequence) return;
+        complete(mrbChosen.map((room) => ({ roomId: room.id, error: error.message })));
+      }
+    })();
+
+    try {
+      await Promise.all([scientiaTask, mrbTask]);
       if (sequence === querySequence && queryState.value === 'loading') transitionQuery('done');
     } catch (error) {
       if (sequence !== querySequence || controller.signal.aborted) return;
@@ -345,7 +522,10 @@ export function useRoomSearch() {
   watch([selectedBuildings, selectedRoomIds, selectedDays, minimumCapacity, maximumCapacity, periods, timeMode], invalidateQuery);
   watch(selectedWeeks, () => { if (timeMode.value === 'week') invalidateQuery(); });
   watch([dateFrom, dateTo], () => { if (timeMode.value === 'date') invalidateQuery(); });
-  onMounted(loadCatalog);
+  onMounted(() => {
+    loadCatalog();
+    if (mrbToken.value) loadMrbCatalog();
+  });
   onUnmounted(cancelQuery);
 
   return {
@@ -354,5 +534,7 @@ export function useRoomSearch() {
     directorySearch, capacityAscending, queryState, queryDirty, queryError, progress, fetchedAt,
     buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, matchingRooms, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
     dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery, cancelActiveQuery,
+    mrbToken, mrbUser, mrbRooms, mrbLoginOpen, mrbLoginForm, mrbMfa, mrbMfaCode, mrbLoginError, mrbLoggingIn, mrbCatalogLoading, mrbError,
+    loginMrb, submitMrbMfa, disconnectMrb, loadMrbCatalog, resetMrbLoginDialog,
   };
 }
