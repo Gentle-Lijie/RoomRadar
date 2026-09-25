@@ -1,6 +1,9 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import initialRooms from './data/rooms.json';
 
+// 后端地址：开发时走 Vite 代理（留空），部署时由 .env 的 BACKEND_HOST 注入。
+const apiBase = import.meta.env.VITE_API_BASE ?? '';
+
 const MS_DAY = 86_400_000;
 const QUERY_TRANSITIONS = {
   idle: new Set(['loading', 'error']),
@@ -102,7 +105,7 @@ export function useRoomSearch() {
     mrbLoggingIn.value = true;
     mrbLoginError.value = '';
     try {
-      const response = await fetch('/api/mrb/login', {
+      const response = await fetch(`${apiBase}/api/mrb/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mrbLoginForm.value),
@@ -125,7 +128,7 @@ export function useRoomSearch() {
     mrbLoggingIn.value = true;
     mrbLoginError.value = '';
     try {
-      const response = await fetch('/api/mrb/login/mfa', {
+      const response = await fetch(`${apiBase}/api/mrb/login/mfa`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stateId: mrbMfa.value?.stateId, code: mrbMfaCode.value }),
@@ -156,7 +159,7 @@ export function useRoomSearch() {
     mrbCatalogLoading.value = true;
     mrbError.value = '';
     try {
-      const response = await fetch('/api/mrb/rooms', { headers: { Authorization: `Bearer ${mrbToken.value}` }, cache: 'no-store' });
+      const response = await fetch(`${apiBase}/api/mrb/rooms`, { headers: { Authorization: `Bearer ${mrbToken.value}` }, cache: 'no-store' });
       const payload = await response.json().catch(() => ({}));
       if (response.status === 401) {
         disconnectMrb();
@@ -344,7 +347,7 @@ export function useRoomSearch() {
     loadingCatalog.value = true;
     catalogError.value = '';
     try {
-      const response = await fetch('/api/catalog', { cache: 'no-store' });
+      const response = await fetch(`${apiBase}/api/catalog`, { cache: 'no-store' });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? '教室目录查询失败');
       const previousIds = scientiaRooms.value.map((room) => room.id).join('\u0000');
@@ -414,7 +417,7 @@ export function useRoomSearch() {
 
     const scientiaTask = (async () => {
       if (!scientiaChosen.length) return;
-      const response = await fetch('/api/availability/stream', {
+      const response = await fetch(`${apiBase}/api/availability/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
@@ -472,7 +475,7 @@ export function useRoomSearch() {
       }
       const dates = visibleDates.value;
       try {
-        const response = await fetch('/api/mrb/timetable', {
+        const response = await fetch(`${apiBase}/api/mrb/timetable`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mrbToken.value}` },
           cache: 'no-store',

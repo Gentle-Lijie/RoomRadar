@@ -66,6 +66,23 @@ The Vite frontend is at `http://localhost:5173`; the API is at
 `http://localhost:3001`. Build the frontend with `npm run build` and then run
 the single-origin production server with `npm start`.
 
+## Deployment
+
+Copy `.env.example` to `.env`, set the frontend and backend hosts, then run:
+
+```sh
+./deploy.sh
+```
+
+The script installs dependencies, builds the web app with `VITE_API_BASE` set
+to `BACKEND_HOST`, and manages two pm2 processes: `${PM2_APP_NAME}-api` (the
+Express API, `API_PORT`) and `${PM2_APP_NAME}-web` (`pm2 serve` for the static
+frontend, `WEB_PORT`). `.env` is gitignored and never committed.
+
 The upstream room list is at `http://timetablingunnc.nottingham.ac.uk:8017/room.htm`.
 It loads room metadata from `/js/filter.js` and fetches detailed records under
 `/reporting/TextSpreadsheet;location;id;...`.
+
+---
+
+Made with ❤️ by GentleLijie
