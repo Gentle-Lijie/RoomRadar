@@ -65,10 +65,29 @@ const timelineSlots = computed(() => {
   });
 });
 const timelineHours = computed(() => timelineSlots.value.filter((slot) => slot.start % 60 === 0));
+const timelineRange = computed(() => PERIOD_OPTIONS.find((item) => item.value === periods.value) ?? { start: 480, end: 1080 });
+const timelineSpan = computed(() => timelineRange.value.end - timelineRange.value.start);
+const timelineGroups = computed(() => {
+  const groups = [];
+  for (const room of visibleRooms.value) {
+    const last = groups[groups.length - 1];
+    if (last && last.building === room.building) last.rooms.push(room);
+    else groups.push({ building: room.building, rooms: [room] });
+  }
+  return groups;
+});
+function timelineBars(roomId) {
+  const option = timelineRange.value;
+  if (!isRoomLoaded(roomId) || !activeTimelineDate.value) return [];
+  return bookingsForRoom(roomId, activeTimelineDate.value)
+    .map((event) => ({ event, start: Math.max(option.start, Math.min(option.end, minutes(event.start))), end: Math.max(option.start, Math.min(option.end, minutes(event.end))) }))
+    .filter((bar) => bar.end > bar.start)
+    .sort((a, b) => a.start - b.start || a.event.identifier.localeCompare(b.event.identifier));
+}
 function minutes(time) { return Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)); }
-function slotBookings(roomId, slot) {
-  if (!activeTimelineDate.value) return [];
-  return bookingsForRoom(roomId, activeTimelineDate.value).filter((event) => minutes(event.start) < slot.end && minutes(event.end) > slot.start);
+function barLabel(booking) {
+  const who = booking.staff || booking.identifier.replace(/^\S+\s*\[[^\]]*\]\s*-\s*/, '');
+  return `${booking.start}–${booking.end} ${who}`;
 }
 function moveTimelineDate(offset) {
   timelineDate.value = visibleDates.value[activeTimelineIndex.value + offset] ?? activeTimelineDate.value;
@@ -246,15 +265,18 @@ function inspectRoom(room) {
       </TabsContent>
 
       <TabsContent value="matrix" class="view-content">
-        <div class="view-heading"><div><h2>时间对比</h2><p>时间轴每格 30 分钟；选日期可逐日查看。汇总视图支持横纵比较。</p></div><div class="matrix-toolbar"><Button size="sm" :variant="matrixView === 'timeline' ? 'secondary' : 'ghost'" @click="matrixView = 'timeline'">半小时时间轴</Button><Button size="sm" :variant="matrixView === 'summary' ? 'secondary' : 'ghost'" @click="matrixView = 'summary'">汇总对比</Button></div></div>
+        <div class="view-heading"><div><h2>时间对比</h2><p>行程条按实际时间绘制，点击条目查看预约详情；按楼栋分组，选日期可逐日查看。汇总视图支持横纵比较。</p></div><div class="matrix-toolbar"><Button size="sm" :variant="matrixView === 'timeline' ? 'secondary' : 'ghost'" @click="matrixView = 'timeline'">半小时时间轴</Button><Button size="sm" :variant="matrixView === 'summary' ? 'secondary' : 'ghost'" @click="matrixView = 'summary'">汇总对比</Button></div></div>
         <div v-if="matrixView === 'timeline'" class="timeline-pane">
           <div class="timeline-toolbar">
             <div class="timeline-date-nav"><Button size="icon-sm" variant="outline" aria-label="上一日期" :disabled="activeTimelineIndex <= 0" @click="moveTimelineDate(-1)"><ChevronLeft :size="14" /></Button><Popover><PopoverTrigger as-child><Button variant="outline" size="sm" :disabled="!activeTimelineDate">{{ activeTimelineDate ? `${activeTimelineDate} · ${shortDate(activeTimelineDate)}` : '没有符合筛选的日期' }}<ChevronDown :size="14" /></Button></PopoverTrigger><PopoverContent align="start" class="timeline-date-popover"><Button v-for="date in visibleDates" :key="date" variant="ghost" size="sm" class="timeline-date-option" @click="timelineDate = date">{{ date }} · {{ shortDate(date) }}</Button></PopoverContent></Popover><Button size="icon-sm" variant="outline" aria-label="下一日期" :disabled="activeTimelineIndex < 0 || activeTimelineIndex >= visibleDates.length - 1" @click="moveTimelineDate(1)"><ChevronRight :size="14" /></Button></div>
             <div class="matrix-legend"><span class="legend-busy"></span> 占用 <span class="legend-free"></span> 空闲 <span class="legend-empty"></span> 查询中或失败</div>
           </div>
           <div class="table-panel timeline-scroll"><Table><TableHeader><TableRow><TableHead class="timeline-room-col">教室 <span class="timeline-head-muted">/ 容量</span></TableHead><TableHead v-for="hour in timelineHours" :key="hour.start" colspan="2" class="timeline-hour-head">{{ hour.label }}</TableHead></TableRow></TableHeader><TableBody>
-            <TableRow v-for="room in visibleRooms" :key="room.id" class="timeline-row"><TableCell class="timeline-room-col"><strong class="timeline-room-name" :title="room.fullName">{{ shortName(room) }}</strong><small class="timeline-room-meta">{{ displayId(room) }} · {{ room.capacity }} 人</small></TableCell><TableCell v-for="slot in timelineSlots" :key="slot.start" :class="['timeline-cell', { 'timeline-hour-start': slot.start % 60 === 0 }]"><Button variant="ghost" size="icon-xs" :class="['timeline-slot', !isRoomLoaded(room.id) ? 'timeline-pending' : slotBookings(room.id, slot).length ? 'timeline-occupied' : 'timeline-free']" :disabled="!isRoomLoaded(room.id) || !activeTimelineDate" :aria-label="`${shortName(room)} ${activeTimelineDate} ${slot.label} ${!isRoomLoaded(room.id) ? roomError(room.id) || '查询中' : slotBookings(room.id, slot).length ? `占用：${slotBookings(room.id, slot).map((booking) => booking.staff || booking.identifier).join('、')}` : '空闲'}`" :title="!isRoomLoaded(room.id) ? roomError(room.id) || '查询中' : slotBookings(room.id, slot).length ? slotBookings(room.id, slot).map((booking) => `${booking.start}–${booking.end} ${booking.staff || booking.identifier}`).join('\n') : `${slot.label} 空闲`" @click="openDetails(room, { kind: 'date', key: activeTimelineDate, label: shortDate(activeTimelineDate) }, slot)"><span class="sr-only">{{ slotBookings(room.id, slot).length ? '占用' : '空闲' }}</span></Button></TableCell></TableRow>
-            <TableRow v-if="!visibleRooms.length || !activeTimelineDate"><TableCell :colspan="Math.max(2, timelineSlots.length + 1)" class="empty-cell">{{ !activeTimelineDate ? '当前筛选没有可显示的日期。' : emptyResultMessage }}</TableCell></TableRow>
+            <template v-for="group in timelineGroups" :key="group.building">
+              <TableRow class="timeline-group-row"><TableCell :colspan="timelineHours.length * 2 + 1">{{ group.building }}<span class="timeline-group-count">{{ group.rooms.length }} 间</span></TableCell></TableRow>
+              <TableRow v-for="room in group.rooms" :key="room.id" class="timeline-row"><TableCell class="timeline-room-col"><strong class="timeline-room-name" :title="room.fullName">{{ shortName(room) }}</strong><small class="timeline-room-meta">{{ displayId(room) }} · {{ room.capacity }} 人</small></TableCell><TableCell :colspan="Math.max(1, timelineHours.length * 2)" class="timeline-track-cell"><div v-if="!isRoomLoaded(room.id)" class="timeline-track timeline-track-pending">{{ roomError(room.id) || '查询中…' }}</div><div v-else class="timeline-track" :style="{ '--tl-hours': timelineHours.length }"><Button v-for="bar in timelineBars(room.id)" :key="`${bar.event.identifier}-${bar.event.start}`" variant="ghost" class="timeline-bar" :style="{ '--bar-left': `${(bar.start - timelineRange.start) / timelineSpan * 100}%`, '--bar-width': `${Math.max(1.5, (bar.end - bar.start) / timelineSpan * 100)}%` }" :disabled="!activeTimelineDate" :aria-label="`${shortName(room)} ${shortDate(activeTimelineDate)} ${barLabel(bar.event)}`" :title="`${barLabel(bar.event)}，点击查看详情`" @click="openDetails(room, { kind: 'date', key: activeTimelineDate, label: shortDate(activeTimelineDate) }, { start: bar.start, end: bar.end, label: bar.event.start })"><span class="timeline-bar-text">{{ barLabel(bar.event) }}</span></Button></div></TableCell></TableRow>
+            </template>
+            <TableRow v-if="!visibleRooms.length || !activeTimelineDate"><TableCell :colspan="timelineHours.length * 2 + 1" class="empty-cell">{{ !activeTimelineDate ? '当前筛选没有可显示的日期。' : emptyResultMessage }}</TableCell></TableRow>
           </TableBody></Table></div>
         </div>
         <div v-else class="summary-pane"><div class="matrix-toolbar summary-toolbar"><Button size="sm" :variant="matrixDimension === 'date' ? 'secondary' : 'ghost'" @click="matrixDimension = 'date'">按日期</Button><Button size="sm" :variant="matrixDimension === 'week' ? 'secondary' : 'ghost'" @click="matrixDimension = 'week'">按周次</Button><Button size="sm" variant="outline" @click="transposed = !transposed"><ArrowLeftRight :size="14" /> 交换横纵轴</Button></div>

@@ -1,0 +1,249 @@
+<title>时间对比 UI 方案</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ===== 页面骨架：严格沿用 apps/web/src/style.css 的三套调色板原值 ===== */
+:root {
+  color-scheme: light;
+  --radius: .5rem;
+  --background: #f5f8fb; --foreground: #142b3b;
+  --card: #fff; --card-foreground: #142b3b;
+  --primary: #285f91; --primary-foreground: #fff;
+  --secondary: #e2edf8; --secondary-foreground: #224e74;
+  --muted: #edf3f8; --muted-foreground: #5d7080;
+  --accent: #dfebf6; --accent-foreground: #224e74;
+  --border: #d4e0e9; --input: #c9d7e2; --ring: #5b8db9;
+  --preview-free: #dcf1f3; --preview-free-text: #266c78;
+  --preview-booked: #f7e9d9; --preview-booked-text: #8b5b24;
+  --slot-busy: #e8aa70; --slot-busy-line: #ce8848;
+  --destructive: #b9433d;
+}
+:root[data-palette="green"] {
+  --background: #f7f9f7; --foreground: #15271f;
+  --primary: #286449; --secondary: #e5f0e9; --secondary-foreground: #214d39;
+  --muted: #eef2ef; --muted-foreground: #596d62;
+  --accent: #e4efe8; --accent-foreground: #214d39;
+  --border: #d7e0da; --input: #cbd6ce; --ring: #5e9a77;
+  --preview-free: #e1f2e7; --preview-free-text: #236341;
+  --preview-booked: #f9e8dc; --preview-booked-text: #8a4d26;
+}
+:root[data-palette="mono"] {
+  --background: #f8f8f6; --foreground: #202020;
+  --primary: #242424; --secondary: #eaeae6; --secondary-foreground: #202020;
+  --muted: #f0f0ed; --muted-foreground: #60605a;
+  --accent: #e9e9e4; --accent-foreground: #202020;
+  --border: #d5d5cf; --input: #c8c8c0; --ring: #64645c;
+  --preview-free: #dff0e6; --preview-free-text: #23573c;
+  --preview-booked: #ffe8d5; --preview-booked-text: #934b19;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 26px clamp(16px, 4vw, 44px) 72px;
+  background: var(--background); color: var(--foreground);
+  font: 13px/1.55 Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.wrap { max-width: 1320px; margin: 0 auto; }
+
+/* ===== 页头 ===== */
+.page-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.page-head img.logo { width: 26px; height: 26px; }
+.page-head h1 { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: .01em; }
+.page-head .sub { flex-basis: 100%; color: var(--muted-foreground); font-size: 12px; margin: 2px 0 0; max-width: 72ch; }
+.palette-switch { display: flex; gap: 6px; margin-left: auto; }
+.palette-switch button {
+  font: 600 11px Inter, system-ui, sans-serif; padding: 5px 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); cursor: pointer;
+}
+.palette-switch button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
+
+/* ===== 展板 ===== */
+.board { margin-top: 30px; }
+.board-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.board-tag { font: 700 10px/1 Inter; letter-spacing: .08em; padding: 4px 8px; border-radius: 3px; background: var(--primary); color: var(--primary-foreground); }
+.board-head h2 { font-size: 14px; font-weight: 700; margin: 0; }
+.board-head p { margin: 0; color: var(--muted-foreground); font-size: 11px; }
+.frame { margin-top: 9px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px; }
+.scroller { overflow-x: auto; }
+.mock { min-width: 880px; }
+
+/* ===== 模拟页通用（对应 app 的 query-bar / 表头语言） ===== */
+.m-head { display: flex; align-items: center; gap: 10px; padding-bottom: 9px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.m-brand { display: flex; align-items: center; gap: 8px; }
+.m-brand img { width: 22px; height: 22px; }
+.m-brand strong { font-size: 13px; font-weight: 700; }
+.m-brand small { color: var(--muted-foreground); font-size: 11px; margin-left: 8px; }
+.m-chips { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.m-chip { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--secondary); color: var(--secondary-foreground); }
+.m-legend { display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: 10px; margin: 8px 0; }
+.sw { width: 11px; height: 11px; border-radius: 2px; border: 1px solid var(--border); margin-left: 8px; display: inline-block; }
+.sw-free { background: var(--preview-free); } .sw-busy { background: var(--slot-busy); border-color: var(--slot-busy-line); }
+.sw-pending { background: var(--muted); } .sw-now { background: var(--destructive); border: none; width: 3px; border-radius: 0; }
+.m-note { color: var(--muted-foreground); font-size: 11px; margin: 10px 2px 0; }
+
+/* 时间标尺 */
+.ruler, .m-row { display: grid; align-items: center; }
+.hour-cells { display: grid; grid-template-columns: repeat(14, 1fr); grid-column: 2; }
+.hour-cells span { font-size: 9px; color: var(--muted-foreground); text-align: left; font-variant-numeric: tabular-nums; border-left: 1px solid var(--border); padding-left: 3px; }
+
+/* 房间列：固定宽度 + 容量固定子列（所有方案一致） */
+.m-room { display: flex; align-items: center; gap: 6px; min-width: 0; padding-right: 10px; }
+.m-room .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 11.5px; }
+.m-room .badge-mrb { flex: none; font-size: 9px; padding: 0 5px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted-foreground); }
+.m-room .cap { flex: none; margin-left: auto; font-size: 10px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; background: var(--muted); border-radius: 3px; padding: 0 4px; }
+
+/* ===== 方案 A · 合并时段块 ===== */
+.v-a { --roomcol: 205px; }
+.v-a .ruler, .v-a .m-row { grid-template-columns: var(--roomcol) 1fr; }
+.v-a .m-room { width: var(--roomcol); flex: none; position: sticky; left: 0; background: var(--card); height: 100%; }
+.v-a .track { position: relative; height: 26px; background: var(--preview-free); border-radius: 3px; overflow: hidden;
+  background-image: repeating-linear-gradient(to right, transparent 0, transparent calc(100%/14 - 1px), var(--border) calc(100%/14 - 1px), var(--border) calc(100%/14)); }
+.v-a .m-row { margin-top: 5px; }
+.v-a .blk { position: absolute; top: 3px; bottom: 3px; background: var(--slot-busy); border: 1px solid var(--slot-busy-line); border-radius: 3px; }
+.v-a .hatch { position: absolute; top: 0; bottom: 0; right: 0;
+  background: repeating-linear-gradient(45deg, var(--muted) 0 4px, var(--card) 4px 8px); }
+.v-a .nowline { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--destructive); }
+.v-a .ruler .sp { grid-column: 1; }
+
+/* ===== 方案 B · 标签日程条 ===== */
+.v-b { --roomcol: 215px; }
+.v-b .ruler, .v-b .m-row { grid-template-columns: var(--roomcol) 1fr; }
+.v-b .m-room { width: var(--roomcol); flex: none; position: sticky; left: 0; background: var(--card); height: 100%; }
+.v-b .m-row { margin-top: 7px; }
+.v-b .track { position: relative; height: 30px; background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  background-image: repeating-linear-gradient(to right, transparent 0, transparent calc(100%/14 - 1px), var(--border) calc(100%/14 - 1px), var(--border) calc(100%/14)); }
+.v-b .blk { position: absolute; top: 4px; bottom: 4px; background: var(--slot-busy); border: 1px solid var(--slot-busy-line); border-radius: 4px;
+  display: flex; align-items: center; padding: 0 6px; overflow: hidden; }
+.v-b .blk em { font-style: normal; font-size: 10px; font-weight: 600; color: #5f3a12; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v-b .hatch { position: absolute; top: 0; bottom: 0; right: 0;
+  background: repeating-linear-gradient(45deg, var(--muted) 0 4px, var(--card) 4px 8px); }
+.v-b .nowline { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--destructive); }
+.v-b .m-room .cap { background: var(--secondary); color: var(--secondary-foreground); }
+
+/* ===== 方案 C · 楼栋分组网格 ===== */
+.v-c { --roomcol: 205px; --freecol: 96px; }
+.v-c .ruler, .v-c .m-row { grid-template-columns: var(--roomcol) 1fr var(--freecol); }
+.v-c .m-room { width: var(--roomcol); flex: none; position: sticky; left: 0; background: var(--card); height: 100%; }
+.v-c .cells { display: grid; grid-template-columns: repeat(28, 1fr); gap: 2px; padding: 1px 0; }
+.v-c .cell { height: 20px; border-radius: 3px; border: 1px solid var(--border); background: var(--preview-free); }
+.v-c .cell.busy { background: var(--slot-busy); border-color: var(--slot-busy-line); }
+.v-c .cell.pending { background: var(--muted); }
+.v-c .cell.now { outline: 2px solid var(--destructive); outline-offset: -2px; }
+.v-c .m-row { margin-top: 3px; }
+.v-c .free-hint { font-size: 9.5px; color: var(--preview-free-text); text-align: right; font-variant-numeric: tabular-nums; padding-right: 2px; }
+.v-c .group { grid-column: 1 / -1; margin-top: 10px; font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  color: var(--secondary-foreground); background: var(--secondary); border-radius: 3px; padding: 3px 8px; }
+.v-c .ruler .sp { grid-column: 1; }
+
+/* ===== 方案 D · 高密度紧凑条 ===== */
+.v-d { --roomcol: 172px; }
+.v-d .ruler, .v-d .m-row { grid-template-columns: var(--roomcol) 1fr; }
+.v-d .m-room { width: var(--roomcol); flex: none; position: sticky; left: 0; background: var(--card); height: 100%; }
+.v-d .m-room .nm { font-size: 11px; font-weight: 500; }
+.v-d .m-room .badge-mrb { display: none; }
+.v-d .track { position: relative; height: 15px;
+  background: var(--preview-free);
+  background-image: repeating-linear-gradient(to right, transparent 0, transparent calc(100%/14 - 1px), var(--border) calc(100%/14 - 1px), var(--border) calc(100%/14)); }
+.v-d .m-row { margin-top: 2px; padding-bottom: 2px; border-bottom: 1px solid var(--border); }
+.v-d .blk { position: absolute; top: 0; bottom: 0; background: var(--slot-busy); border-right: 1px solid var(--slot-busy-line); }
+.v-d .hatch { position: absolute; top: 0; bottom: 0; right: 0;
+  background: repeating-linear-gradient(45deg, var(--muted) 0 3px, var(--card) 3px 6px); }
+.v-d .nowline { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--destructive); }
+.v-d .ruler span { font-size: 8px; }
+
+@media (max-width: 700px) { .palette-switch { margin-left: 0; flex-basis: 100%; } }
+</style>
+
+<div class="wrap">
+  <header class="page-head">
+    <img class="logo" src="data:image/x-icon;base64,AAABAAMAEBAAAAEAIABoBAAANgAAACAgAAABACAAKBEAAJ4EAAAwMAAAAQAgAGgmAADGFQAAKAAAABAAAAAgAAAAAQAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhDQOiYP+TsmD/c6JQ+mOiYOWDslEH07Jg+7OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ5jwkEEA7Jg9XOiUNYTslENM7JhD/OyYQ/jslEPw7JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP8AAAACAAAAAAAAAAA6JQ+4OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYRPDweDxEAAAAAOyYP2DslEO87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zolEXs7JhCBAAAAADslD/g6Jg+FOyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JRGKOyYRbAAAAAA6JQ/+OyUQkjsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OiYOWAAAAAEAAAAAOyYPhjskDls6JQ97OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zAgEBAAAAAAAAAAAAAAAAIAAAAAOCQPMjsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP8wIBAQOSQOR0AgAAgwIBAQOiUQYTokDl07JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyUQrDsmENA5JAw/OSUNTDsmD8o6JQ+4OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKAAAACAAAABAAAAAAQAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OiYQ/TsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmD/c7JRCkOyYPZDslEFI7JBBwOiYPyTsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP86JRCrOiYPmjsmEOY7JhD/OyYQ/zslEOE7JRGKPR8KGTMzAAU6JA9UOyYQkjomEKI7Jg+FOiUQnjsmEP47JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhCcOycKGkAqFQxAKhUMAAAAADojDBY7JA5wOiUP2zsmEP87JhD/OyYQ/zsmEP87JRD8OyYQ8zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JA5bOiYQfzolEJ47JRCyOyYPqTsmD1c7JQ91OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zMAAAUAAAAAAAAAAAAAAAAAAAAAAAAAADskEHE7JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/MwAABQAAAAAAAAAAAAAAAAAAAAAAAAAAOyQQcTsm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EOY7JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKAAAADAAAABgAAAAAQAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP47JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ+jsmEOU6JhDJOyYQmzsmD4c8JQ+WOiYQxTsmEOY7JhD7OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEM87JhDgOyYQ/jsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zslEPw6JRDOOiURezwjDzNJJAAHAAAAADsnFA04IBAgNyIOJTkoDkc7JhCTOyYQ8zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmENw7Jg9XOiYQczwmEMU7JxH1OyYQ/zsmEP88JhDzPCYQvDsmEF83JBIcVQAAA1UAAAM7Jg08OyUQpDsmEdg7JhDfOyYQ3zsmD9c7Jg+pPCURiTslEPw7JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhDRPSQQPzckEg4kJAAHOycUGjsnFBoqKgAGAAAAAEAAAAQ9JAwVOCcNOzsmEK47Jg/7OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYP+DsmEN47JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsm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ECA7JhDeOyYQ/zolDksAAAAAAAAAAAAAAAAAAAAAOyQOfjsmEP86JhDFNSALGDkcHAk5Jg0oOyYQxDsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zslEPw7JhDROyURizwmEWs7Jg/nOyYQ/zolDksAAAAAAAAAAAAAAAAAAAAAOyQOfjsmEP86Jg/WOiYQcjwmEZo7JhDeOyYQ/jsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/jsmEPM7JhD8OyYQ/zolEME7JhCSOyYPhzolD4g6JRGZOiYP1zsmEP87JhD7OyYQ9jsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/zsmEP87JhD/OyYQ/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" alt="UNNC 校徽">
+    <h1>时间对比 · UI 方案</h1>
+    <div class="palette-switch" role="group" aria-label="配色切换">
+      <button type="button" data-pal="blue" aria-pressed="true">课表蓝</button>
+      <button type="button" data-pal="green" aria-pressed="false">默认绿</button>
+      <button type="button" data-pal="mono" aria-pressed="false">黑白</button>
+    </div>
+    <p class="sub">四套「时间对比」视图改版，全部沿用应用现有 token（card / border / secondary 表头 / 占用 #e8aa70 / 空闲 preview-free），仅布局不同。共同点：教室+容量列固定宽度（名称超长省略号，容量右对齐等宽数字），左上角 UNNC 校徽，表格可横向滚动时房间列吸左。示例数据为演示用。</p>
+  </header>
+
+  <section class="board">
+    <div class="board-head"><span class="board-tag">方案 A</span><h2>合并时段块</h2><p>在现行网格节奏上把连续预约画成一整块圆角色块，一眼读出时段长短；房间列固定 205px。</p></div>
+    <div class="frame"><div class="scroller"><div class="mock v-a" id="mock-a"></div></div></div>
+  </section>
+
+  <section class="board">
+    <div class="board-head"><span class="board-tag">方案 B</span><h2>标签日程条</h2><p>更高的行程条直接内嵌「时间 · 事项」文字，无需悬停即可读；行高 30px，房间列固定 215px。</p></div>
+    <div class="frame"><div class="scroller"><div class="mock v-b" id="mock-b"></div></div></div>
+  </section>
+
+  <section class="board">
+    <div class="board-head"><span class="board-tag">方案 C</span><h2>楼栋分组网格</h2><p>保留现行离散格子，但按楼栋分组、行尾新增固定 96px「下一个空闲」提示列；房间列固定 205px。</p></div>
+    <div class="frame"><div class="scroller"><div class="mock v-c" id="mock-c"></div></div></div>
+  </section>
+
+  <section class="board">
+    <div class="board-head"><span class="board-tag">方案 D</span><h2>高密度紧凑条</h2><p>行高 15px 的连续色带，同屏可容纳三倍房间数，适合 200+ 间总览；房间列固定 172px。</p></div>
+    <div class="frame"><div class="scroller"><div class="mock v-d" id="mock-d"></div></div></div>
+  </section>
+</div>
+
+<script>
+const UNNC = document.querySelector('.page-head img.logo').src;
+const START = 480, DAY = 840, NOW = 390; // 8:00 起，14:30 为当前时刻
+const fmt = (m) => { const t = START + m; return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+
+// 演示数据：segs=[起, 止, 事项]（分钟，自 8:00 起）；pendingFrom 之后为「查询中」
+const ROOMS = [
+  { name: 'TB11 A02', cap: 96, bld: '教学楼 AB / TB / GH', segs: [[60, 180, 'CHEM1035 · 讲座'], [240, 390, 'ABEE1034 · 讲座'], [450, 570, 'SEMY2211 · 研讨'], [660, 780, '期中考试']] },
+  { name: 'AB2C11 研修室', cap: 18, bld: '教学楼 AB / TB / GH', segs: [[0, 90, 'ABEE1034 · 讲座'], [210, 330, 'SEMY2211 · 研讨'], [540, 600, '周课辅导']], pendingFrom: 720 },
+  { name: 'GH01 周年庭讲堂', cap: 240, bld: '教学楼 AB / TB / GH', segs: [[120, 240, 'LAN61004 · 讲座'], [420, 540, '毕业答辩']] },
+  { name: 'A52 Eliot 教室', cap: 72, bld: '教学楼 AB / TB / GH', segs: [[90, 150, '周课辅导'], [300, 360, 'SEMY2211 · 研讨'], [480, 540, 'ABEE1034 · 研讨'], [600, 660, 'CHIN1001 · 讲座']], pendingFrom: 600 },
+  { name: 'SC32F5 实验室', cap: 48, bld: '科学楼 SC / XY', segs: [[0, 240, 'CHEM1035 · 实验'], [360, 720, 'PHYS2002 · 实验']] },
+  { name: 'XY-SAGA 多功能厅', cap: 60, bld: '科学楼 SC / XY', segs: [[180, 420, '就业公平会 · 布展']] },
+  { name: '图书馆 LB3-03 研修室', cap: 8, mrb: true, bld: '会议室（MRB）', segs: [[0, 180, '私密预约'], [300, 480, '小组研讨'], [520, 640, '私密预约']] },
+  { name: 'PM09 会议室', cap: 12, mrb: true, bld: '会议室（MRB）', segs: [[120, 210, '部门例会'], [330, 420, '私密预约'], [540, 660, '面试 · 私密']] },
+];
+const GROUPS = [...new Set(ROOMS.map((r) => r.bld))];
+
+const segAt = (room, min) => room.segs.find(([s, e]) => min >= s && min < e);
+const roomCol = (r) => `<div class="m-room"><span class="nm" title="${r.name}">${r.name}</span>${r.mrb ? '<span class="badge-mrb">会议室</span>' : ''}<span class="cap">${r.cap}</span></div>`;
+const hatch = (r) => r.pendingFrom ? `<div class="hatch" style="left:${r.pendingFrom / DAY * 100}%"></div>` : '';
+const legend = (extra = '') => `<div class="m-legend"><span class="sw sw-busy"></span>占用<span class="sw sw-free"></span>空闲<span class="sw sw-pending"></span>查询中或失败<span class="sw sw-now"></span>当前时刻 ${fmt(NOW)}${extra}</div>`;
+const head = () => `<div class="m-head"><div class="m-brand"><img src="${UNNC}" alt="UNNC"><strong>UNNC 教室查询</strong><small>时间对比</small></div><div class="m-chips"><span class="m-chip">10月1日 周四 · 第 2 周</span><span class="m-chip">281 间 · 已返回 280</span></div></div>`;
+const rulerHTML = (cls) => `<div class="ruler ${cls}"><span class="sp"></span><div class="hour-cells">${Array.from({ length: 14 }, (_, h) => `<span>${String(8 + h).padStart(2, '0')}:00</span>`).join('')}</div>${cls === 'v-c-ruler' ? '<span></span>' : ''}</div>`;
+
+/* 方案 A · 合并时段块 */
+document.getElementById('mock-a').innerHTML = head() + legend() + rulerHTML('v-a') +
+  ROOMS.map((r) => `<div class="m-row">${roomCol(r)}<div class="track">${r.segs.map(([s, e, t]) =>
+    `<div class="blk" style="left:${s / DAY * 100}%;width:${(e - s) / DAY * 100}%" title="${fmt(s)}–${fmt(e)} · ${t}"></div>`).join('')}${hatch(r)}<div class="nowline" style="left:${NOW / DAY * 100}%"></div></div></div>`).join('') +
+  `<p class="m-note">连续预约合并为单块，长度即时长；斜纹为未返回数据；红线为当前时刻 14:30。</p>`;
+
+/* 方案 B · 标签日程条 */
+document.getElementById('mock-b').innerHTML = head() + legend() + rulerHTML('v-b') +
+  ROOMS.map((r) => `<div class="m-row">${roomCol(r)}<div class="track">${r.segs.map(([s, e, t]) =>
+    `<div class="blk" style="left:${s / DAY * 100}%;width:${(e - s) / DAY * 100}%" title="${fmt(s)}–${fmt(e)} · ${t}"><em>${fmt(s)}–${fmt(e)} ${t}</em></div>`).join('')}${hatch(r)}<div class="nowline" style="left:${NOW / DAY * 100}%"></div></div></div>`).join('') +
+  `<p class="m-note">条内直接标注「时间 + 事项」，悬停可见完整信息；窄条自动省略文字。</p>`;
+
+/* 方案 C · 楼栋分组网格 */
+const freeHint = (r) => { for (let m = Math.max(NOW, 0); m < DAY; m += 30) { if (!segAt(r, m) && !(r.pendingFrom && m >= r.pendingFrom)) { let e = m; while (e < DAY && !segAt(r, e) && !(r.pendingFrom && e >= r.pendingFrom)) e += 30; return `${fmt(m)}–${fmt(e)}`; } } return '今日无空闲'; };
+document.getElementById('mock-c').innerHTML = head() + legend() + rulerHTML('v-c-ruler') +
+  GROUPS.map((g) => `<div class="m-row"><span class="group">${g}</span></div>` + ROOMS.filter((r) => r.bld === g).map((r) => {
+    const cells = Array.from({ length: 28 }, (_, i) => { const s = i * 30, seg = segAt(r, s); const cls = seg ? 'busy' : (r.pendingFrom && s >= r.pendingFrom ? 'pending' : 'free'); return `<div class="cell ${cls}${i === 13 ? ' now' : ''}" title="${seg ? `${fmt(s)}–${fmt(seg[1])} · ${seg[2]}` : fmt(s)}–${fmt(s + 30)} ${cls === 'pending' ? '查询中' : '空闲'}"></div>`; }).join('');
+    return `<div class="m-row">${roomCol(r)}<div class="cells">${cells}</div><span class="free-hint">空闲 ${freeHint(r)}</span></div>`;
+  }).join('')).join('') +
+  `<p class="m-note">离散格子沿用现行配色；按楼栋分组后长隔行更易扫读；行尾固定列提示下一个空闲区间，红框为当前半小时。</p>`;
+
+/* 方案 D · 高密度紧凑条 */
+const dense = ROOMS.concat(ROOMS.slice(0, 4).map((r, i) => ({ ...r, name: `${r.name}（续 ${i + 1}）` })));
+document.getElementById('mock-d').innerHTML = head() + legend() + rulerHTML('v-d') +
+  dense.map((r) => `<div class="m-row">${roomCol(r)}<div class="track">${r.segs.map(([s, e, t]) =>
+    `<div class="blk" style="left:${s / DAY * 100}%;width:${(e - s) / DAY * 100}%" title="${fmt(s)}–${fmt(e)} · ${t}"></div>`).join('')}${hatch(r)}<div class="nowline" style="left:${NOW / DAY * 100}%"></div></div></div>`).join('') +
+  `<p class="m-note">行高 15px 连续色带（示例重复前四间以演示密度），悬停读详情；整页同屏可容纳三倍房间数。</p>`;
+
+/* 配色切换：与 app 的 data-palette 完全一致 */
+document.querySelector('.palette-switch').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-pal]'); if (!btn) return;
+  document.documentElement.dataset.palette = btn.dataset.pal === 'blue' ? '' : btn.dataset.pal;
+  if (btn.dataset.pal === 'blue') delete document.documentElement.dataset.palette;
+  document.querySelectorAll('.palette-switch button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+});
+</script>

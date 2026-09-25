@@ -5,3 +5,4 @@ dist/
 coverage/
 output/playwright/
 .playwright-cli/
+.playwright-mcp/
