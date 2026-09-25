@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 构建前端并用 pm2 托管前后端。
+# 构建前端，由 API 进程同端口托管（同源 /api，无需跨源配置）。
 # 用法: ./deploy.sh （可选环境变量见 .env.example，默认从 .env 读取）
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -10,29 +10,23 @@ if [ -f .env ]; then
 fi
 
 APP_NAME="${PM2_APP_NAME:-unnc-room-check}"
-FRONTEND_PORT="${FRONTEND_PORT:-8080}"
-BACKEND_PORT="${BACKEND_PORT:-3001}"
-# 跨机部署时在 .env 里显式设置 BACKEND_HOST
-BACKEND_HOST="${BACKEND_HOST:-http://127.0.0.1:${BACKEND_PORT}}"
+PORT="${PORT:-3001}"
 
 command -v pm2 >/dev/null 2>&1 || { echo "安装 pm2..."; npm install -g pm2; }
 
 echo "安装依赖..."
 npm install --no-audit --no-fund
 
-echo "构建前端（API 地址: ${BACKEND_HOST}）..."
-VITE_API_BASE="$BACKEND_HOST" npm run build
+echo "构建前端（同源模式，走 /api）..."
+npm run build
 
 echo "重启 pm2 进程..."
-pm2 delete "${APP_NAME}-api" >/dev/null 2>&1 || true
-pm2 delete "${APP_NAME}-web" >/dev/null 2>&1 || true
+pm2 delete "${APP_NAME}" >/dev/null 2>&1 || true
 
-PORT="$BACKEND_PORT" pm2 start apps/api/src/index.js --name "${APP_NAME}-api" --time
-pm2 serve apps/web/dist "$FRONTEND_PORT" --name "${APP_NAME}-web" --spa
+PORT="$PORT" pm2 start npx --name "${APP_NAME}" --time -- tsx apps/api/src/index.ts
 
 pm2 save
 echo
 echo "部署完成："
-echo "  前端  http://127.0.0.1:${FRONTEND_PORT}  (pm2: ${APP_NAME}-web)"
-echo "  后端  ${BACKEND_HOST}  (pm2: ${APP_NAME}-api)"
+echo "  入口  http://127.0.0.1:${PORT}  (pm2: ${APP_NAME})"
 pm2 list
