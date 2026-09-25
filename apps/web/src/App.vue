@@ -1,6 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue';
-import { useRoomSearch, PERIOD_OPTIONS } from './useRoomSearch.js';
+import type { Ref } from 'vue';
+import { useRoomSearch, PERIOD_OPTIONS } from './useRoomSearch';
+import type { BookingEvent, Room } from './useRoomSearch';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -12,9 +14,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Progress } from '@/components/ui/progress';
 import { ChevronDown, RotateCcw, Search, ArrowLeftRight, Info, RefreshCw, ChevronLeft, ChevronRight, LoaderCircle, X, Building2, LogOut } from '@lucide/vue';
 
-const viewNames = ['list', 'building', 'matrix', 'capacity'];
-const view = ref(viewNames.includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'list');
-watchEffect(() => window.history.replaceState(null, '', `#${view.value}`));
+interface MatrixBucket { key: string | number; label: string; kind: 'date' | 'week' }
+interface TimelineBar { event: BookingEvent; start: number; end: number }
+
+const viewNames: string[] = ['list', 'building', 'matrix', 'capacity'];
+const view = ref<string>(viewNames.includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'list');
+watchEffect(() => { window.history.replaceState(null, '', `#${view.value}`); });
 function syncViewFromHash() {
   const next = window.location.hash.slice(1);
   if (viewNames.includes(next)) view.value = next;
@@ -33,14 +38,14 @@ const {
   mrbToken, mrbUser, mrbLoginOpen, mrbLoginForm, mrbMfa, mrbMfaCode, mrbLoginError, mrbLoggingIn, mrbCatalogLoading, mrbError,
   loginMrb, submitMrbMfa, disconnectMrb, loadMrbCatalog, resetMrbLoginDialog,
 } = useRoomSearch();
-const matrixDimension = ref('date');
+const matrixDimension = ref<'date' | 'week'>('date');
 const matrixView = ref('timeline');
 const transposed = ref(false);
 const detailOpen = ref(false);
-const detailRoom = ref(null);
-const detailBucket = ref(null);
-const detailSlot = ref(null);
-const timelineDate = ref(null);
+const detailRoom = ref<Room | null>(null);
+const detailBucket = ref<MatrixBucket | null>(null);
+const detailSlot = ref<{ start: number; end: number; label: string } | null>(null);
+const timelineDate = ref<string | null>(null);
 const weekdayNames = ['一', '二', '三', '四', '五', '六', '日'];
 const periodLabel = computed(() => PERIOD_OPTIONS.find((option) => option.value === periods.value)?.label ?? '08:00–18:00');
 const progressPercent = computed(() => progress.value.total ? Math.round(progress.value.completed / progress.value.total * 100) : null);
@@ -51,11 +56,11 @@ const emptyResultMessage = computed(() => {
   if (queryState.value === 'error') return queryError.value;
   return '当前条件下没有教室。';
 });
-const matrixBuckets = computed(() => matrixDimension.value === 'date'
-  ? visibleDates.value.map((date) => ({ key: date, label: shortDate(date), kind: 'date' }))
-  : effectiveWeeks.value.filter((week) => visibleDates.value.some((date) => weekOf(date) === week)).map((week) => ({ key: week, label: `第 ${week} 周`, kind: 'week' })));
-const activeTimelineDate = computed(() => visibleDates.value.includes(timelineDate.value) ? timelineDate.value : visibleDates.value[0] ?? null);
-const activeTimelineIndex = computed(() => visibleDates.value.indexOf(activeTimelineDate.value));
+const matrixBuckets = computed<MatrixBucket[]>(() => matrixDimension.value === 'date'
+  ? visibleDates.value.map((date) => ({ key: date, label: shortDate(date), kind: 'date' as const }))
+  : effectiveWeeks.value.filter((week) => visibleDates.value.some((date) => weekOf(date) === week)).map((week) => ({ key: week, label: `第 ${week} 周`, kind: 'week' as const })));
+const activeTimelineDate = computed(() => visibleDates.value.includes(timelineDate.value ?? '') ? timelineDate.value : visibleDates.value[0] ?? null);
+const activeTimelineIndex = computed(() => visibleDates.value.indexOf(activeTimelineDate.value ?? ''));
 const timelineSlots = computed(() => {
   const option = PERIOD_OPTIONS.find((item) => item.value === periods.value);
   if (!option) return [];
@@ -68,7 +73,7 @@ const timelineHours = computed(() => timelineSlots.value.filter((slot) => slot.s
 const timelineRange = computed(() => PERIOD_OPTIONS.find((item) => item.value === periods.value) ?? { start: 480, end: 1080 });
 const timelineSpan = computed(() => timelineRange.value.end - timelineRange.value.start);
 const timelineGroups = computed(() => {
-  const groups = [];
+  const groups: { building: string; rooms: Room[] }[] = [];
   for (const room of visibleRooms.value) {
     const last = groups[groups.length - 1];
     if (last && last.building === room.building) last.rooms.push(room);
@@ -76,7 +81,7 @@ const timelineGroups = computed(() => {
   }
   return groups;
 });
-function timelineBars(roomId) {
+function timelineBars(roomId: string): TimelineBar[] {
   const option = timelineRange.value;
   if (!isRoomLoaded(roomId) || !activeTimelineDate.value) return [];
   return bookingsForRoom(roomId, activeTimelineDate.value)
@@ -84,24 +89,31 @@ function timelineBars(roomId) {
     .filter((bar) => bar.end > bar.start)
     .sort((a, b) => a.start - b.start || a.event.identifier.localeCompare(b.event.identifier));
 }
-function minutes(time) { return Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)); }
-function barLabel(booking) {
+function minutes(time: string) { return Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)); }
+function barLabel(booking: BookingEvent) {
   const who = booking.staff || booking.identifier.replace(/^\S+\s*\[[^\]]*\]\s*-\s*/, '');
   return `${booking.start}–${booking.end} ${who}`;
 }
-function moveTimelineDate(offset) {
+function moveTimelineDate(offset: number) {
   timelineDate.value = visibleDates.value[activeTimelineIndex.value + offset] ?? activeTimelineDate.value;
 }
-const detailBookings = computed(() => {
+const detailBookings = computed<BookingEvent[]>(() => {
   if (!detailRoom.value) return [];
   const events = bookingsForRoom(detailRoom.value.id);
-  const inBucket = detailBucket.value ? events.filter((event) => detailBucket.value.kind === 'date' ? event.date === detailBucket.value.key : event.week === detailBucket.value.key) : events;
-  return detailSlot.value ? inBucket.filter((event) => minutes(event.start) < detailSlot.value.end && minutes(event.end) > detailSlot.value.start) : inBucket;
+  const bucket = detailBucket.value;
+  const inBucket = bucket ? events.filter((event) => bucket.kind === 'date' ? event.date === bucket.key : event.week === bucket.key) : events;
+  const slot = detailSlot.value;
+  return slot ? inBucket.filter((event) => minutes(event.start) < slot.end && minutes(event.end) > slot.start) : inBucket;
 });
-function toggleItem(type, item) {
-  const list = type === 'building' ? selectedBuildings : type === 'week' ? selectedWeeks : selectedDays;
+function toggleItem(type: 'building' | 'week' | 'day', item: string | number) {
   if (type === 'building') selectedRoomIds.value = [];
-  list.value = list.value.includes(item) ? list.value.filter((value) => value !== item) : [...list.value, item].sort((a, b) => String(a).localeCompare(String(b), 'zh-CN', { numeric: true }));
+  const list: Ref<string[] | number[]> = type === 'building' ? selectedBuildings : type === 'week' ? selectedWeeks : selectedDays;
+  const current: (string | number)[] = list.value;
+  const next = current.includes(item) ? current.filter((value) => value !== item) : [...current, item];
+  next.sort((a, b) => String(a).localeCompare(String(b), 'zh-CN', { numeric: true }));
+  if (type === 'building') selectedBuildings.value = next as string[];
+  else if (type === 'week') selectedWeeks.value = next as number[];
+  else selectedDays.value = next as number[];
 }
 function resetFilters() {
   selectedBuildings.value = [];
@@ -112,42 +124,53 @@ function resetFilters() {
   periods.value = '1-20';
   timeMode.value = 'date';
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
-  const read = (type) => parts.find((part) => part.type === type).value;
+  const read = (type: string) => parts.find((part) => part.type === type)!.value;
   const today = `${read('year')}-${read('month')}-${read('day')}`;
   dateFrom.value = today;
   dateTo.value = new Date(Date.parse(`${today}T00:00:00Z`) + 6 * 86_400_000).toISOString().slice(0, 10);
   const currentWeek = Math.max(1, Math.min(maxWeek.value, weekOf(today)));
   selectedWeeks.value = [currentWeek];
 }
-function shortDate(isoDate) {
+function shortDate(isoDate: string | null) {
   if (!isoDate) return '—';
   return `${isoDate.slice(5, 7)}/${isoDate.slice(8, 10)} 周${weekdayNames[dayOf(isoDate) - 1]}`;
 }
-function shortName(room) {
+function shortName(room: Room) {
   return room.name.replace(new RegExp(`^${room.building.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s-]*`, 'i'), '').trim() || room.name;
 }
-function displayId(room) {
+function displayId(room: Room) {
   return room.source === 'mrb' ? (room.spaceNo || room.id.slice(4)) : room.id;
 }
 function refreshCatalogs() {
   loadCatalog();
   if (mrbToken.value) loadMrbCatalog();
 }
-function openDetails(room, bucket = null, slot = null) {
+function openDetails(room: Room, bucket: MatrixBucket | null = null, slot: { start: number; end: number; label: string } | null = null) {
   detailRoom.value = room;
   detailBucket.value = bucket;
   detailSlot.value = slot;
   detailOpen.value = true;
 }
-function inspectRoom(room) {
+function inspectRoom(room: Room) {
   selectedBuildings.value = [room.building];
   selectedRoomIds.value = [room.id];
   minimumCapacity.value = '';
   maximumCapacity.value = '';
   view.value = 'list';
 }
+const matrixColumns = computed<(Room | MatrixBucket)[]>(() => (transposed.value ? visibleRooms.value : matrixBuckets.value));
+function columnKey(column: Room | MatrixBucket) { return 'id' in column ? column.id : column.key; }
+function columnLabel(column: Room | MatrixBucket) { return 'id' in column ? shortName(column) : column.label; }
+function columnCapacity(column: Room | MatrixBucket) { return 'id' in column ? column.capacity : null; }
+function cellStatus(roomId: string, bucket: MatrixBucket) {
+  const summary = cellSummary(roomId, bucket);
+  return {
+    cls: !summary ? 'status-pending' : summary.count ? 'status-booked' : 'status-free',
+    text: !summary ? '待查询' : summary.count ? `${summary.count} 条预约` : '无预约',
+    free: summary ? `空闲 ${summary.freeHours}h` : '—',
+  };
+}
 </script>
-
 <template>
   <div class="app-shell">
     <header class="app-header">
@@ -274,16 +297,16 @@ function inspectRoom(room) {
           <div class="table-panel timeline-scroll"><Table><TableHeader><TableRow><TableHead class="timeline-room-col">教室 <span class="timeline-head-muted">/ 容量</span></TableHead><TableHead v-for="hour in timelineHours" :key="hour.start" colspan="2" class="timeline-hour-head">{{ hour.label }}</TableHead></TableRow></TableHeader><TableBody>
             <template v-for="group in timelineGroups" :key="group.building">
               <TableRow class="timeline-group-row"><TableCell :colspan="timelineHours.length * 2 + 1">{{ group.building }}<span class="timeline-group-count">{{ group.rooms.length }} 间</span></TableCell></TableRow>
-              <TableRow v-for="room in group.rooms" :key="room.id" class="timeline-row"><TableCell class="timeline-room-col"><strong class="timeline-room-name" :title="room.fullName">{{ shortName(room) }}</strong><small class="timeline-room-meta">{{ displayId(room) }} · {{ room.capacity }} 人</small></TableCell><TableCell :colspan="Math.max(1, timelineHours.length * 2)" class="timeline-track-cell"><div v-if="!isRoomLoaded(room.id)" class="timeline-track timeline-track-pending">{{ roomError(room.id) || '查询中…' }}</div><div v-else class="timeline-track" :style="{ '--tl-hours': timelineHours.length }"><Button v-for="bar in timelineBars(room.id)" :key="`${bar.event.identifier}-${bar.event.start}`" variant="ghost" class="timeline-bar" :style="{ '--bar-left': `${(bar.start - timelineRange.start) / timelineSpan * 100}%`, '--bar-width': `${Math.max(1.5, (bar.end - bar.start) / timelineSpan * 100)}%` }" :disabled="!activeTimelineDate" :aria-label="`${shortName(room)} ${shortDate(activeTimelineDate)} ${barLabel(bar.event)}`" :title="`${barLabel(bar.event)}，点击查看详情`" @click="openDetails(room, { kind: 'date', key: activeTimelineDate, label: shortDate(activeTimelineDate) }, { start: bar.start, end: bar.end, label: bar.event.start })"><span class="timeline-bar-text">{{ barLabel(bar.event) }}</span></Button></div></TableCell></TableRow>
+              <TableRow v-for="room in group.rooms" :key="room.id" class="timeline-row"><TableCell class="timeline-room-col"><strong class="timeline-room-name" :title="room.fullName">{{ shortName(room) }}</strong><small class="timeline-room-meta">{{ displayId(room) }} · {{ room.capacity }} 人</small></TableCell><TableCell :colspan="Math.max(1, timelineHours.length * 2)" class="timeline-track-cell"><div v-if="!isRoomLoaded(room.id)" class="timeline-track timeline-track-pending">{{ roomError(room.id) || '查询中…' }}</div><div v-else class="timeline-track" :style="{ '--tl-hours': timelineHours.length }"><Button v-for="bar in timelineBars(room.id)" :key="`${bar.event.identifier}-${bar.event.start}`" variant="ghost" class="timeline-bar" :style="{ '--bar-left': `${(bar.start - timelineRange.start) / timelineSpan * 100}%`, '--bar-width': `${Math.max(1.5, (bar.end - bar.start) / timelineSpan * 100)}%` }" :disabled="!activeTimelineDate" :aria-label="`${shortName(room)} ${shortDate(activeTimelineDate)} ${barLabel(bar.event)}`" :title="`${barLabel(bar.event)}，点击查看详情`" @click="openDetails(room, { kind: 'date', key: activeTimelineDate ?? '', label: shortDate(activeTimelineDate) }, { start: bar.start, end: bar.end, label: bar.event.start })"><span class="timeline-bar-text">{{ barLabel(bar.event) }}</span></Button></div></TableCell></TableRow>
             </template>
             <TableRow v-if="!visibleRooms.length || !activeTimelineDate"><TableCell :colspan="timelineHours.length * 2 + 1" class="empty-cell">{{ !activeTimelineDate ? '当前筛选没有可显示的日期。' : emptyResultMessage }}</TableCell></TableRow>
           </TableBody></Table></div>
         </div>
         <div v-else class="summary-pane"><div class="matrix-toolbar summary-toolbar"><Button size="sm" :variant="matrixDimension === 'date' ? 'secondary' : 'ghost'" @click="matrixDimension = 'date'">按日期</Button><Button size="sm" :variant="matrixDimension === 'week' ? 'secondary' : 'ghost'" @click="matrixDimension = 'week'">按周次</Button><Button size="sm" variant="outline" @click="transposed = !transposed"><ArrowLeftRight :size="14" /> 交换横纵轴</Button></div>
         <div class="matrix-legend"><span class="legend-free"></span> 无预约 <span class="legend-busy"></span> 有预约 <span class="legend-empty"></span> 查询中或失败</div>
-        <div class="table-panel matrix-scroll"><Table><TableHeader><TableRow><TableHead class="matrix-label-col">{{ transposed ? (matrixDimension === 'date' ? '日期' : '周次') : '教室 / 容量' }}</TableHead><TableHead v-for="column in transposed ? visibleRooms : matrixBuckets" :key="transposed ? column.id : column.key" class="matrix-data-col">{{ transposed ? shortName(column) : column.label }}<small v-if="transposed" class="code-line">{{ column.capacity }} 人</small></TableHead></TableRow></TableHeader><TableBody>
-          <template v-if="!transposed"><TableRow v-for="room in visibleRooms" :key="room.id"><TableCell class="matrix-label-col"><strong>{{ shortName(room) }}</strong><small class="code-line">{{ displayId(room) }} · {{ room.capacity }} 人</small></TableCell><TableCell v-for="bucket in matrixBuckets" :key="bucket.key" class="matrix-cell"><Button class="matrix-cell-button" variant="ghost" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room, bucket)"><span :class="['status-chip', !cellSummary(room.id, bucket) ? 'status-pending' : cellSummary(room.id, bucket).count ? 'status-booked' : 'status-free']">{{ !cellSummary(room.id, bucket) ? '待查询' : cellSummary(room.id, bucket).count ? `${cellSummary(room.id, bucket).count} 条预约` : '无预约' }}</span><small>{{ cellSummary(room.id, bucket) ? `空闲 ${cellSummary(room.id, bucket).freeHours}h` : '—' }}</small></Button></TableCell></TableRow></template>
-          <template v-else><TableRow v-for="bucket in matrixBuckets" :key="bucket.key"><TableCell class="matrix-label-col"><strong>{{ bucket.label }}</strong><small class="code-line">{{ bucket.kind === 'week' ? '周次对比' : '日期对比' }}</small></TableCell><TableCell v-for="room in visibleRooms" :key="room.id" class="matrix-cell"><Button class="matrix-cell-button" variant="ghost" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room, bucket)"><span :class="['status-chip', !cellSummary(room.id, bucket) ? 'status-pending' : cellSummary(room.id, bucket).count ? 'status-booked' : 'status-free']">{{ !cellSummary(room.id, bucket) ? '待查询' : cellSummary(room.id, bucket).count ? `${cellSummary(room.id, bucket).count} 条预约` : '无预约' }}</span><small>{{ cellSummary(room.id, bucket) ? `空闲 ${cellSummary(room.id, bucket).freeHours}h` : '—' }}</small></Button></TableCell></TableRow></template>
+        <div class="table-panel matrix-scroll"><Table><TableHeader><TableRow><TableHead class="matrix-label-col">{{ transposed ? (matrixDimension === 'date' ? '日期' : '周次') : '教室 / 容量' }}</TableHead><TableHead v-for="column in matrixColumns" :key="columnKey(column)" class="matrix-data-col">{{ columnLabel(column) }}<small v-if="transposed" class="code-line">{{ columnCapacity(column) }} 人</small></TableHead></TableRow></TableHeader><TableBody>
+          <template v-if="!transposed"><TableRow v-for="room in visibleRooms" :key="room.id"><TableCell class="matrix-label-col"><strong>{{ shortName(room) }}</strong><small class="code-line">{{ displayId(room) }} · {{ room.capacity }} 人</small></TableCell><TableCell v-for="bucket in matrixBuckets" :key="bucket.key" class="matrix-cell"><Button class="matrix-cell-button" variant="ghost" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room, bucket)"><span :class="['status-chip', cellStatus(room.id, bucket).cls]">{{ cellStatus(room.id, bucket).text }}</span><small>{{ cellStatus(room.id, bucket).free }}</small></Button></TableCell></TableRow></template>
+          <template v-else><TableRow v-for="bucket in matrixBuckets" :key="bucket.key"><TableCell class="matrix-label-col"><strong>{{ bucket.label }}</strong><small class="code-line">{{ bucket.kind === 'week' ? '周次对比' : '日期对比' }}</small></TableCell><TableCell v-for="room in visibleRooms" :key="room.id" class="matrix-cell"><Button class="matrix-cell-button" variant="ghost" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room, bucket)"><span :class="['status-chip', cellStatus(room.id, bucket).cls]">{{ cellStatus(room.id, bucket).text }}</span><small>{{ cellStatus(room.id, bucket).free }}</small></Button></TableCell></TableRow></template>
           <TableRow v-if="!matrixBuckets.length || !visibleRooms.length"><TableCell :colspan="(transposed ? visibleRooms.length : matrixBuckets.length) + 1" class="empty-cell">{{ !matrixBuckets.length ? '当前筛选没有可显示的日期或周次。' : emptyResultMessage }}</TableCell></TableRow>
         </TableBody></Table></div></div>
       </TabsContent>
@@ -312,7 +335,7 @@ function inspectRoom(room) {
       </DialogContent>
     </Dialog>
 
-    <Dialog v-model:open="detailOpen"><DialogContent class="detail-dialog"><DialogHeader><DialogTitle>{{ detailRoom ? shortName(detailRoom) : '预约详情' }}</DialogTitle><DialogDescription>{{ detailRoom?.building }} · {{ detailRoom ? displayId(detailRoom) : '' }} · Capacity {{ detailRoom?.capacity }} <span v-if="detailRoom?.source === 'mrb' && detailRoom.enabled === false">· 已停用{{ detailRoom.disableReason ? `（${detailRoom.disableReason}）` : '' }}</span> <span v-if="detailBucket">· {{ detailBucket.label }}</span></DialogDescription></DialogHeader><div class="detail-note">显示 Scientia 列表报告中的全部字段。Staff 可能是授课人员；空白时不推断预约人。<a v-if="detailRoom && roomUrl(detailRoom.id)" :href="roomUrl(detailRoom.id)" target="_blank" rel="noopener noreferrer">原始列表 ↗</a><a v-if="detailRoom && roomGridUrl(detailRoom.id)" :href="roomGridUrl(detailRoom.id)" target="_blank" rel="noopener noreferrer">原始网格 ↗</a></div><div class="detail-table"><Table><TableHeader><TableRow><TableHead>日期 / 时间</TableHead><TableHead>Staff / 活动代码</TableHead><TableHead>活动类型 / 名称</TableHead><TableHead>位置 / 适用周次</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="(booking, index) in detailBookings" :key="`${booking.identifier}-${index}`"><TableCell><strong>{{ shortDate(booking.date) }}</strong><small class="code-line">{{ booking.start }}–{{ booking.end }} · {{ booking.duration }}</small></TableCell><TableCell class="code-cell"><strong>{{ booking.staff || '原站未提供 Staff' }}</strong><small class="code-line">{{ booking.identifier }}</small></TableCell><TableCell>{{ booking.activityType }}<small class="code-line">{{ booking.title }}</small><small class="code-line">活动人数 {{ booking.activityCapacity || '—' }}</small></TableCell><TableCell>{{ booking.location }}<small class="code-line">{{ booking.roomDescription }}</small><small class="code-line">房间容量 {{ booking.roomSize || detailRoom?.capacity }}<template v-if="booking.sourceWeeks"> · 第 {{ booking.sourceWeeks }} 周</template></small><small v-if="booking.attendees?.length" class="code-line">参加者 {{ booking.attendees.join('、') }}</small><details v-if="booking.rawFields" class="source-fields"><summary>原始字段</summary><pre>{{ JSON.stringify(booking.rawFields, null, 2) }}</pre></details></TableCell></TableRow><TableRow v-if="!detailBookings.length"><TableCell colspan="4" class="empty-cell">所选区间没有预约。</TableCell></TableRow></TableBody></Table></div></DialogContent></Dialog>
+    <Dialog v-model:open="detailOpen"><DialogContent class="detail-dialog"><DialogHeader><DialogTitle>{{ detailRoom ? shortName(detailRoom) : '预约详情' }}</DialogTitle><DialogDescription>{{ detailRoom?.building }} · {{ detailRoom ? displayId(detailRoom) : '' }} · Capacity {{ detailRoom?.capacity }} <span v-if="detailRoom?.source === 'mrb' && detailRoom.enabled === false">· 已停用{{ detailRoom.disableReason ? `（${detailRoom.disableReason}）` : '' }}</span> <span v-if="detailBucket">· {{ detailBucket.label }}</span></DialogDescription></DialogHeader><div class="detail-note">显示 Scientia 列表报告中的全部字段。Staff 可能是授课人员；空白时不推断预约人。<a v-if="detailRoom && roomUrl(detailRoom.id)" :href="roomUrl(detailRoom.id) ?? undefined" target="_blank" rel="noopener noreferrer">原始列表 ↗</a><a v-if="detailRoom && roomGridUrl(detailRoom.id)" :href="roomGridUrl(detailRoom.id) ?? undefined" target="_blank" rel="noopener noreferrer">原始网格 ↗</a></div><div class="detail-table"><Table><TableHeader><TableRow><TableHead>日期 / 时间</TableHead><TableHead>Staff / 活动代码</TableHead><TableHead>活动类型 / 名称</TableHead><TableHead>位置 / 适用周次</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="(booking, index) in detailBookings" :key="`${booking.identifier}-${index}`"><TableCell><strong>{{ shortDate(booking.date) }}</strong><small class="code-line">{{ booking.start }}–{{ booking.end }} · {{ booking.duration }}</small></TableCell><TableCell class="code-cell"><strong>{{ booking.staff || '原站未提供 Staff' }}</strong><small class="code-line">{{ booking.identifier }}</small></TableCell><TableCell>{{ booking.activityType }}<small class="code-line">{{ booking.title }}</small><small class="code-line">活动人数 {{ booking.activityCapacity || '—' }}</small></TableCell><TableCell>{{ booking.location }}<small class="code-line">{{ booking.roomDescription }}</small><small class="code-line">房间容量 {{ booking.roomSize || detailRoom?.capacity }}<template v-if="booking.sourceWeeks"> · 第 {{ booking.sourceWeeks }} 周</template></small><small v-if="booking.attendees?.length" class="code-line">参加者 {{ booking.attendees.join('、') }}</small><details v-if="booking.rawFields" class="source-fields"><summary>原始字段</summary><pre>{{ JSON.stringify(booking.rawFields, null, 2) }}</pre></details></TableCell></TableRow><TableRow v-if="!detailBookings.length"><TableCell colspan="4" class="empty-cell">所选区间没有预约。</TableCell></TableRow></TableBody></Table></div></DialogContent></Dialog>
 
     <footer class="app-footer">Made with ❤️ by GentleLijie</footer>
   </div>

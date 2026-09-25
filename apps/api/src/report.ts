@@ -1,18 +1,38 @@
 import { load } from 'cheerio';
 
-const DAY_NUMBERS = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
-
-function tidy(text) {
-  return text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+export interface ReportEvent {
+  roomId: string;
+  day: number;
+  start: string;
+  end: string;
+  identifier: string;
+  activityType: string;
+  activityCapacity: string;
+  title: string;
+  duration: string;
+  location: string;
+  roomDescription: string;
+  roomSize: string;
+  staff: string;
+  sourceWeeks: string;
+  sourceRoomLabel: string;
+  rawFields: Record<string, string>;
+  weeks: number[];
 }
 
-function normalTime(value) {
+const DAY_NUMBERS: Record<string, number> = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
+
+function tidy(text: string) {
+  return text.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function normalTime(value: string) {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value);
   return match ? `${match[1].padStart(2, '0')}:${match[2]}` : value;
 }
 
-export function expandWeeks(specification, firstWeek, lastWeek) {
-  const weeks = new Set();
+export function expandWeeks(specification: string, firstWeek: number, lastWeek: number) {
+  const weeks = new Set<number>();
   for (const match of specification.matchAll(/\b(\d+)(?:\s*-\s*(\d+))?\b/g)) {
     const first = Number(match[1]);
     const last = Number(match[2] ?? match[1]);
@@ -27,14 +47,14 @@ export function expandWeeks(specification, firstWeek, lastWeek) {
   return weeks;
 }
 
-export function parseReport(html, requestedIds, firstWeek, lastWeek) {
+export function parseReport(html: string, requestedIds: string[], firstWeek: number, lastWeek: number) {
   const $ = load(html);
   const requested = requestedIds.map((id) => ({ original: id, decoded: decodeURIComponent(id).toLowerCase() }));
   const reportHeaders = $('body > table').filter((_, table) => /Room:\s*/.test($(table).text())).toArray();
   const orderIsComplete = reportHeaders.length === requested.length;
-  const parsed = new Map();
+  const parsed = new Map<string, ReportEvent[]>();
   let headerIndex = -1;
-  let currentRoom = null;
+  let currentRoom: { original: string; decoded: string } | null = null;
   let sourceRoomLabel = '';
 
   for (const element of $('body').children().toArray()) {
@@ -62,7 +82,7 @@ export function parseReport(html, requestedIds, firstWeek, lastWeek) {
       if (values.length < 13) continue;
       const day = DAY_NUMBERS[values[4]];
       if (!day) continue;
-      parsed.get(currentRoom.original).push({
+      parsed.get(currentRoom.original)!.push({
         roomId: currentRoom.original,
         day,
         start: normalTime(values[5]),

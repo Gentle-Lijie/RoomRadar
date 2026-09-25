@@ -8,30 +8,40 @@ const MRB_BASE = process.env.MRB_BASE_URL ?? 'https://meetingroombooking.notting
 const SSO_BASE = process.env.SSO_BASE_URL ?? 'https://sso.nottingham.edu.cn';
 const MRB_API = `${MRB_BASE}/api/ace-sbms-provider`;
 
-function badRequest(message, status = 400) {
-  const error = new Error(message);
+interface StatusError extends Error {
+  status?: number;
+}
+
+function badRequest(message: string, status = 400): StatusError {
+  const error = new Error(message) as StatusError;
   error.status = status;
   return error;
 }
 
-function decodeEntities(text) {
+function decodeEntities(text: string) {
   return text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
 
 // The campus WAF (F5) rejects requests without browser-like headers, so every
 // outbound request carries them.
-const BROWSER_HEADERS = {
+const BROWSER_HEADERS: Record<string, string> = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
   'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
 };
 
+interface GoOptions {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: URLSearchParams;
+  signal?: AbortSignal;
+}
+
 class Session {
-  constructor() {
-    this.cookies = new Map(); // host -> Map(name -> value)
-    this.url = '';
-    this.referer = '';
-  }
-  store(response) {
+  cookies = new Map<string, Map<string, string>>(); // host -> Map(name -> value)
+  url = '';
+  referer = '';
+
+  store(response: Response) {
     const host = new URL(response.url ?? this.url).host;
     for (const cookie of response.headers.getSetCookie?.() ?? []) {
       const [pair] = cookie.split(';');
@@ -39,7 +49,7 @@ class Session {
       const name = pair.slice(0, eq).trim();
       const value = pair.slice(eq + 1).trim();
       if (!this.cookies.has(host)) this.cookies.set(host, new Map());
-      const jar = this.cookies.get(host);
+      const jar = this.cookies.get(host)!;
       // ADFS acknowledges MFA success with a fresh MSISAuth followed by an
       // empty-value deletion of the same name; honoring the deletion would
       // drop the just-issued session, so empty values never overwrite.
@@ -47,12 +57,12 @@ class Session {
       jar.set(name, value);
     }
   }
-  header(url) {
+  header(url: string) {
     const host = new URL(url).host;
     const jar = this.cookies.get(host);
     return jar ? [...jar.entries()].map(([k, v]) => `${k}=${v}`).join('; ') : '';
   }
-  async go(url, options = {}) {
+  async go(url: string, options: GoOptions = {}) {
     const cookie = this.header(url);
     const response = await fetch(url, {
       ...options,
@@ -67,14 +77,24 @@ class Session {
   }
 }
 
-function parseForm(html, baseUrl) {
+interface FormField {
+  value: string;
+  type: string;
+}
+
+interface ParsedForm {
+  action: string;
+  fields: Record<string, FormField>;
+}
+
+function parseForm(html: string, baseUrl: string): ParsedForm | null {
   // Some ADFS forms (e.g. the MFA interstitial loginForm) carry no action
   // attribute and post back to the current URL.
   const match = /<form[^>]*?>([\s\S]*?)<\/form>/i.exec(html);
   if (!match) return null;
   const tagMatch = /<form[^>]*>/i.exec(html);
-  const actionAttr = /action="([^"]*)"/i.exec(tagMatch[0])?.[1];
-  const fields = {};
+  const actionAttr = /action="([^"]*)"/i.exec(tagMatch![0])?.[1];
+  const fields: Record<string, FormField> = {};
   for (const input of match[1].matchAll(/<input[^>]*>/gi)) {
     const tag = input[0];
     const name = /name="([^"]*)"/.exec(tag)?.[1];
@@ -90,12 +110,12 @@ function parseForm(html, baseUrl) {
   return { action: new URL(decodeEntities(actionAttr ?? ''), baseUrl).href, fields };
 }
 
-async function postForm(session, form, extra) {
+async function postForm(session: Session, form: ParsedForm, extra?: Record<string, string>) {
   const body = new URLSearchParams();
   for (const [name, { value }] of Object.entries(form.fields)) body.set(name, value);
   for (const [name, value] of Object.entries(extra ?? {})) body.set(name, value);
   // ADFS validates the POST like a real form submission from its own pages.
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
     Origin: new URL(form.action).origin,
   };
@@ -103,9 +123,11 @@ async function postForm(session, form, extra) {
   return session.go(form.action, { method: 'POST', headers, body });
 }
 
-function visibleInputs(form) {
+function visibleInputs(form: ParsedForm) {
   return Object.entries(form.fields).filter(([, field]) => !['hidden', 'checkbox', 'submit', 'button'].includes(field.type));
 }
+
+type LoginOutcome = { token: string } | { mfaForm: ParsedForm } | null;
 
 // Walk the redirect / auto-submit chain after a credential or MFA step.
 // ADFS drives its Azure MFA flow through interstitial pages whose forms
@@ -113,7 +135,7 @@ function visibleInputs(form) {
 // Context) and reposts to the current URL; the next one exposes the
 // VerificationCode input. Resolves with the bearer token, `null` for bad
 // credentials, or `{ mfaForm }` when a code is required.
-async function finishLogin(session, response) {
+async function finishLogin(session: Session, response: Response): Promise<LoginOutcome> {
   let html = await response.text();
   for (let hop = 0; hop < 14; hop += 1) {
     const location = response.headers.get('location');
@@ -148,7 +170,13 @@ async function finishLogin(session, response) {
   return null;
 }
 
-const loginSessions = new Map();
+interface LoginSession {
+  session: Session;
+  form: ParsedForm;
+  createdAt: number;
+}
+
+const loginSessions = new Map<string, LoginSession>();
 function pruneSessions() {
   const cutoff = Date.now() - 5 * 60_000;
   for (const [id, session] of loginSessions) if (session.createdAt < cutoff) loginSessions.delete(id);
@@ -159,9 +187,9 @@ async function newLoginSession() {
   const session = new Session();
   const dispose = await session.go(`${MRB_API}/adfs/dispose-redirect-url?endPoint=${encodeURIComponent(MRB_BASE)}&callBackPoint=${encodeURIComponent(`${MRB_API}/adfs/v1/callback`)}`, { headers: { Accept: 'application/json' } });
   const disposeText = await dispose.text();
-  let payload;
+  let payload: string | null | undefined;
   try {
-    payload = JSON.parse(disposeText).data;
+    payload = (JSON.parse(disposeText) as { data?: string | null }).data;
   } catch {
     if (/Request Rejected/i.test(disposeText)) throw badRequest('请求被校园网防火墙拦截，请稍等一两分钟后重试', 503);
     throw badRequest(`会议室系统登录入口异常（HTTP ${dispose.status}）`, 502);
@@ -177,9 +205,9 @@ async function newLoginSession() {
   return stateId;
 }
 
-export async function mrbLogin(username, password) {
+export async function mrbLogin(username: string, password: string) {
   const stateId = await newLoginSession();
-  const { session, form } = loginSessions.get(stateId);
+  const { session, form } = loginSessions.get(stateId)!;
   const account = username.includes('@') ? username : `${username}@nottingham.edu.cn`;
   // ADFS shows a progressive form: username first, then the password step
   // posts to the form returned by the first submission.
@@ -188,16 +216,16 @@ export async function mrbLogin(username, password) {
   if (!passwordForm) throw badRequest('学校登录页响应异常，请稍后重试', 502);
   const response = await postForm(session, passwordForm, { UserName: account, Password: password, Kmsi: 'true' });
   const outcome = await finishLogin(session, response);
-  if (outcome?.mfaForm) {
+  if (outcome && 'mfaForm' in outcome) {
     loginSessions.set(stateId, { session, form: outcome.mfaForm, createdAt: Date.now() });
     return { stateId, mfaRequired: true };
   }
   loginSessions.delete(stateId);
-  if (!outcome?.token) throw badRequest('学校账号或密码错误，或 SSO 登录被拒绝', 401);
+  if (!outcome || !('token' in outcome)) throw badRequest('学校账号或密码错误，或 SSO 登录被拒绝', 401);
   return verifyToken(outcome.token);
 }
 
-export async function mrbLoginMfa(stateId, code) {
+export async function mrbLoginMfa(stateId: string, code: string) {
   pruneSessions();
   const state = loginSessions.get(stateId);
   if (!state) throw badRequest('登录会话已过期，请重新登录', 440);
@@ -207,27 +235,27 @@ export async function mrbLoginMfa(stateId, code) {
   if (!target) throw badRequest('未找到验证码输入项，请重新登录', 502);
   // Include the submit button value the way a real button click would.
   const submitField = Object.entries(state.form.fields).find(([, field]) => field.type === 'submit');
-  const extra = { [target]: code };
+  const extra: Record<string, string> = { [target]: code };
   if (submitField) extra[submitField[0]] = submitField[1].value || '登录';
   const response = await postForm(state.session, state.form, extra);
   const outcome = await finishLogin(state.session, response);
-  if (outcome?.mfaForm) {
+  if (outcome && 'mfaForm' in outcome) {
     // Wrong code: ADFS re-renders the prompt with a fresh Context — keep the
     // session alive so the user can simply type the next code.
     loginSessions.set(stateId, { session: state.session, form: outcome.mfaForm, createdAt: Date.now() });
     throw badRequest('验证码不正确，请重试', 401);
   }
   loginSessions.delete(stateId);
-  if (!outcome?.token) throw badRequest('SSO 验证失败，请重新登录', 401);
+  if (!outcome || !('token' in outcome)) throw badRequest('SSO 验证失败，请重新登录', 401);
   return verifyToken(outcome.token);
 }
 
-async function mrbApi(path, token, init = {}) {
+async function mrbApi(path: string, token: string, init: RequestInit = {}) {
   const response = await fetch(`${MRB_API}${path}`, {
     ...init,
     headers: {
       ...BROWSER_HEADERS,
-      ...(init.headers ?? {}),
+      ...(init.headers as Record<string, string> | undefined),
       Authorization: `Bearer ${token}`,
       Accept: 'application/json',
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
@@ -238,7 +266,7 @@ async function mrbApi(path, token, init = {}) {
   const text = await response.text();
   if (/Request Rejected/i.test(text)) throw badRequest('请求被校园网防火墙拦截，请稍后重试', 503);
   if (!response.ok) throw badRequest(`会议室系统返回 HTTP ${response.status}`, 502);
-  let payload;
+  let payload: { code?: number; msg?: string; data?: any };
   try {
     payload = JSON.parse(text);
   } catch {
@@ -248,7 +276,7 @@ async function mrbApi(path, token, init = {}) {
   return payload.data;
 }
 
-async function verifyToken(token) {
+async function verifyToken(token: string) {
   const response = await fetch(`${MRB_BASE}/api/ace-upms-provider/sys-user/info`, {
     headers: { ...BROWSER_HEADERS, Authorization: `Bearer ${token}`, Accept: 'application/json' },
     signal: AbortSignal.timeout(20_000),
@@ -256,7 +284,7 @@ async function verifyToken(token) {
   let name = '';
   let userId = '';
   if (response?.ok) {
-    const payload = await response.json().catch(() => null);
+    const payload = await response.json().catch(() => null) as { data?: { sysUser?: { name?: string; userId?: string } } } | null;
     name = payload?.data?.sysUser?.name ?? '';
     userId = payload?.data?.sysUser?.userId ?? '';
   }
@@ -265,15 +293,17 @@ async function verifyToken(token) {
 
 // The nodeStruct tree stores floors; a space's building is the top-level
 // ancestor of the floor node it references.
-async function buildingIndex(token, signal) {
+async function buildingIndex(token: string, signal?: AbortSignal) {
   const tree = await mrbApi('/nodeStruct/listNodeStructTree', token, { signal });
-  const nodes = new Map();
-  const walk = (node, parent) => {
+  interface BuildingNode { name: string; parent: string | null }
+  interface TreeNode { id: string; nodeName: string; children?: unknown[] }
+  const nodes = new Map<string, BuildingNode>();
+  const walk = (node: TreeNode, parent: string | null) => {
     nodes.set(node.id, { name: node.nodeName, parent });
-    for (const child of node.children ?? []) walk(child, node.id);
+    for (const child of (node.children ?? []) as TreeNode[]) walk(child, node.id);
   };
   for (const root of tree ?? []) walk(root, null);
-  return (nodeId) => {
+  return (nodeId: string) => {
     let node = nodes.get(nodeId);
     while (node?.parent) node = nodes.get(node.parent);
     return node?.name ?? '其他会议室';
@@ -281,11 +311,23 @@ async function buildingIndex(token, signal) {
 }
 
 const SHANGHAI_OFFSET = 8 * 3_600_000;
-function shanghai(ms) {
+function shanghai(ms: number) {
   return new Date(ms + SHANGHAI_OFFSET).toISOString();
 }
 
-export async function mrbRooms(token, signal) {
+interface MrbSpace {
+  id: string;
+  spaceName: string;
+  nodeStructIdList?: string[];
+  capacity?: number | null;
+  floor?: number | null;
+  spaceNo?: string;
+  description?: string;
+  enabled?: number;
+  disableReason?: string | null;
+}
+
+export async function mrbRooms(token: string, signal?: AbortSignal) {
   const [page, buildingOf] = await Promise.all([
     mrbApi('/v3.0/space/userPageSpace', token, {
       method: 'POST',
@@ -294,7 +336,7 @@ export async function mrbRooms(token, signal) {
     }),
     buildingIndex(token, signal),
   ]);
-  const spaces = page?.records ?? [];
+  const spaces: MrbSpace[] = page?.records ?? [];
   if (!Array.isArray(spaces) || !spaces.length) throw badRequest('会议室目录为空', 502);
   return spaces.map((space) => ({
     id: space.id,
@@ -310,9 +352,9 @@ export async function mrbRooms(token, signal) {
   }));
 }
 
-const STATUS_LABELS = { 1: '待确认', 2: '已预约', 3: '已使用', 5: '使用中', 6: '已结束' };
+const STATUS_LABELS: Record<number, string> = { 1: '待确认', 2: '已预约', 3: '已使用', 5: '使用中', 6: '已结束' };
 
-export async function mrbTimetable(token, rawIds, dateFrom, dateTo, signal) {
+export async function mrbTimetable(token: string, rawIds: string[], dateFrom: string, dateTo: string, signal?: AbortSignal) {
   const start = Date.parse(`${dateFrom}T00:00:00+08:00`);
   const end = Date.parse(`${dateTo}T00:00:00+08:00`) + 86_400_000;
   const data = await mrbApi('/v3.0/order/pageTimeTable', token, {
@@ -323,7 +365,7 @@ export async function mrbTimetable(token, rawIds, dateFrom, dateTo, signal) {
       pageObject: { ascs: [], descs: [], pageNum: 1, size: -1 },
     }),
   });
-  const bySpace = new Map((data ?? []).map((space) => [space.id, space.cakeOrderViewList ?? []]));
+  const bySpace = new Map<string, any[]>((data ?? []).map((space: { id: string; cakeOrderViewList?: any[] }) => [space.id, space.cakeOrderViewList ?? []]));
   return rawIds.map((rawId) => {
     const orders = bySpace.get(rawId) ?? [];
     return {
@@ -345,7 +387,7 @@ export async function mrbTimetable(token, rawIds, dateFrom, dateTo, signal) {
           roomDescription: order.spaceView?.spaceNo ? `房间编号 ${order.spaceView.spaceNo}` : '',
           roomSize: order.spaceView?.capacity ? String(order.spaceView.capacity) : '',
           sourceWeeks: '',
-          attendees: order.hide === 1 ? [] : (order.attendeeList ?? []).map((person) => person.name).filter(Boolean),
+          attendees: order.hide === 1 ? [] : (order.attendeeList ?? []).map((person: { name?: string }) => person.name).filter(Boolean),
         })),
     };
   });
