@@ -80,11 +80,14 @@ export function parseReport(html: string, requestedIds: string[], firstWeek: num
     for (const row of rows.slice(1)) {
       const values = $(row).children('td').toArray().map((cell) => tidy($(cell).text()));
       if (values.length < 13) continue;
-      const day = DAY_NUMBERS[values[4]];
-      if (!day) continue;
-      parsed.get(currentRoom.original)!.push({
-        roomId: currentRoom.original,
-        day,
+      // Scientia merges activities repeating on several days into one row
+      // (e.g. Day = "Monday,Tuesday,Wednesday"); split them per day.
+      const days = values[4].split(',').map((name) => DAY_NUMBERS[name.trim()]).filter((day) => day);
+      if (!days.length) continue;
+      for (const day of days) {
+        parsed.get(currentRoom.original)!.push({
+          roomId: currentRoom.original,
+          day,
         start: normalTime(values[5]),
         end: normalTime(values[6]),
         identifier: values[0],
@@ -100,7 +103,8 @@ export function parseReport(html: string, requestedIds: string[], firstWeek: num
         sourceRoomLabel,
         rawFields: Object.fromEntries(headers.slice(0, values.length).map((label, index) => [label, values[index]])),
         weeks: [...expandWeeks(values[12], firstWeek, lastWeek)],
-      });
+        });
+      }
     }
   }
   return parsed;
