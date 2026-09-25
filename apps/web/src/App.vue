@@ -27,8 +27,8 @@ watchEffect(() => { document.documentElement.dataset.palette = 'blue'; });
 const {
   rooms, roomResults, academicStart, maxWeek, catalogUpdatedAt, catalogError, loadingCatalog,
   selectedBuildings, selectedRoomIds, selectedWeeks, selectedDays, minimumCapacity, maximumCapacity, dateFrom, dateTo, periods, timeMode,
-  directorySearch, capacityAscending, queryState, queryError, progress, fetchedAt,
-  buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
+  directorySearch, capacityAscending, queryState, queryDirty, queryError, progress, fetchedAt,
+  buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, matchingRooms, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
   dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery,
 } = useRoomSearch();
 const matrixDimension = ref('date');
@@ -138,7 +138,8 @@ function inspectRoom(room) {
       <span v-else-if="queryState === 'done'">查询完成：{{ progress.completed }} 间教室 · {{ visibleBookings.length }} 条预约<span v-if="failedCount"> · {{ failedCount }} 间失败</span> · {{ fetchedAt ? new Date(fetchedAt).toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '' }}。课表每次查询均从原站获取。</span>
       <span v-else-if="loadingCatalog">正在从 Scientia 更新楼栋、容量和周次；可用当前目录直接查询实时课表…</span>
       <span v-else-if="catalogError">原站部分目录信息未更新：{{ catalogError }}。仍可查询实时课表。<Button variant="link" size="xs" @click="loadCatalog">重试</Button></span>
-      <span v-else>选择楼栋、容量和一种时间筛选方式即可自动查询，也可点击“立即查询”。每次查询都直接访问 Scientia。</span>
+      <span v-else-if="queryDirty">筛选条件已改变，符合条件 {{ matchingRooms.length }} 间教室；点击“立即查询”获取最新课表。</span>
+      <span v-else>设置筛选条件后点击“立即查询”。课表每次查询都直接访问 Scientia。</span>
     </div>
 
     <section class="query-bar" aria-label="查询条件">
@@ -156,19 +157,23 @@ function inspectRoom(room) {
         <div class="control-group"><label for="min-capacity">最小容量</label><Input id="min-capacity" v-model="minimumCapacity" type="number" min="0" placeholder="不限" :aria-invalid="!!validationErrors.minimumCapacity" /><small v-if="validationErrors.minimumCapacity" class="field-error" role="alert">{{ validationErrors.minimumCapacity }}</small></div>
         <div class="control-group"><label for="max-capacity">最大容量</label><Input id="max-capacity" v-model="maximumCapacity" type="number" min="0" placeholder="不限" :aria-invalid="!!validationErrors.maximumCapacity" /><small v-if="validationErrors.maximumCapacity" class="field-error" role="alert">{{ validationErrors.maximumCapacity }}</small></div>
         <div class="control-group time-mode-control"><label>时间筛选</label><div class="time-mode-buttons" role="group" aria-label="时间筛选方式"><Button size="sm" :variant="timeMode === 'date' ? 'secondary' : 'outline'" :aria-pressed="timeMode === 'date'" @click="timeMode = 'date'">按日期</Button><Button size="sm" :variant="timeMode === 'week' ? 'secondary' : 'outline'" :aria-pressed="timeMode === 'week'" @click="timeMode = 'week'">按周次</Button></div></div>
-        <div v-if="timeMode === 'week'" class="control-group week-control">
-          <label>周次（可多选）</label>
-          <Popover>
-            <PopoverTrigger as-child><Button variant="outline" class="filter-trigger"><span>{{ selectedWeeks.length ? selectedWeeks.map((week) => `第${week}周`).join('、') : '选择周次' }}</span><ChevronDown :size="15" /></Button></PopoverTrigger>
-            <PopoverContent align="start" class="filter-popover week-popover">
-              <div class="popover-heading">选择对比周次</div>
-              <label v-for="option in weekOptions" :key="option.value" class="check-option"><Checkbox :model-value="selectedWeeks.includes(option.value)" @update:model-value="toggleItem('week', option.value)" /><span>{{ option.label }}</span><small>{{ dateOf(option.value, 1).slice(5) }} 起</small></label>
-            </PopoverContent>
-          </Popover>
-          <small v-if="validationErrors.weeks" class="field-error" role="alert">{{ validationErrors.weeks }}</small>
+        <div class="control-group time-value-control">
+          <template v-if="timeMode === 'week'">
+            <label>周次（可多选）</label>
+            <Popover>
+              <PopoverTrigger as-child><Button variant="outline" class="filter-trigger"><span>{{ selectedWeeks.length ? selectedWeeks.map((week) => `第${week}周`).join('、') : '选择周次' }}</span><ChevronDown :size="15" /></Button></PopoverTrigger>
+              <PopoverContent align="start" class="filter-popover week-popover">
+                <div class="popover-heading">选择对比周次</div>
+                <label v-for="option in weekOptions" :key="option.value" class="check-option"><Checkbox :model-value="selectedWeeks.includes(option.value)" @update:model-value="toggleItem('week', option.value)" /><span>{{ option.label }}</span><small>{{ dateOf(option.value, 1).slice(5) }} 起</small></label>
+              </PopoverContent>
+            </Popover>
+            <small v-if="validationErrors.weeks" class="field-error" role="alert">{{ validationErrors.weeks }}</small>
+          </template>
+          <div v-else class="date-range-controls">
+            <div class="control-group date-control"><label for="date-from">开始日期</label><Input id="date-from" v-model="dateFrom" type="date" :aria-invalid="!!validationErrors.dateFrom" /><small v-if="validationErrors.dateFrom" class="field-error" role="alert">{{ validationErrors.dateFrom }}</small></div>
+            <div class="control-group date-control"><label for="date-to">结束日期</label><Input id="date-to" v-model="dateTo" type="date" :aria-invalid="!!validationErrors.dateTo" /><small v-if="validationErrors.dateTo" class="field-error" role="alert">{{ validationErrors.dateTo }}</small></div>
+          </div>
         </div>
-        <div v-if="timeMode === 'date'" class="control-group date-control"><label for="date-from">开始日期</label><Input id="date-from" v-model="dateFrom" type="date" :aria-invalid="!!validationErrors.dateFrom" /><small v-if="validationErrors.dateFrom" class="field-error" role="alert">{{ validationErrors.dateFrom }}</small></div>
-        <div v-if="timeMode === 'date'" class="control-group date-control"><label for="date-to">结束日期</label><Input id="date-to" v-model="dateTo" type="date" :aria-invalid="!!validationErrors.dateTo" /><small v-if="validationErrors.dateTo" class="field-error" role="alert">{{ validationErrors.dateTo }}</small></div>
         <div class="control-group period-control">
           <label>时段</label>
           <Popover>
@@ -184,7 +189,7 @@ function inspectRoom(room) {
         <Button v-for="day in 7" :key="day" size="xs" :variant="selectedDays.includes(day) ? 'secondary' : 'ghost'" :aria-pressed="selectedDays.includes(day)" @click="toggleItem('day', day)">周{{ weekdayNames[day - 1] }}</Button>
         <small v-if="validationErrors.days" class="field-error" role="alert">{{ validationErrors.days }}</small>
         <Badge v-if="selectedRoomIds.length" variant="outline">指定教室：{{ selectedRoomIds[0] }} <Button size="xs" variant="ghost" @click="selectedRoomIds = []">×</Button></Badge>
-        <span class="query-summary">目录 {{ rooms.length }} 间 · 已选 {{ visibleRooms.length }} 间 · {{ visibleDates.length }} 个日期</span>
+        <span class="query-summary">目录 {{ rooms.length }} 间 · 符合筛选 {{ matchingRooms.length }} 间 · 已返回 {{ progress.completed }} 间 · {{ visibleDates.length }} 个日期</span>
       </div>
     </section>
 
@@ -234,7 +239,7 @@ function inspectRoom(room) {
         </TableBody></Table></div></div>
       </TabsContent>
 
-      <TabsContent value="capacity" class="view-content"><div class="view-heading"><div><h2>全部教室 Capacity</h2><p>{{ catalogUpdatedAt ? '已从原站读取最新房间名称与容量。' : '当前显示随项目提供的目录快照；点击右上角更新可向原站获取最新目录。' }}</p></div><div class="directory-actions"><div class="directory-search"><Search :size="14" /><Input v-model="directorySearch" placeholder="搜索教室、编号、楼栋" aria-label="搜索教室" /></div><Button size="sm" variant="outline" @click="capacityAscending = !capacityAscending">容量 {{ capacityAscending ? '↑' : '↓' }}</Button><Badge variant="secondary">{{ visibleDirectory.length }} / {{ rooms.length }}</Badge></div></div><div class="table-panel directory-panel"><Table><TableHeader><TableRow><TableHead class="number-col">#</TableHead><TableHead>教室名称</TableHead><TableHead>楼栋</TableHead><TableHead>原站房间 ID</TableHead><TableHead class="number-col">Capacity</TableHead><TableHead class="number-col">课表</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="(room, index) in visibleDirectory" :key="room.id"><TableCell class="number-col secondary-cell">{{ index + 1 }}</TableCell><TableCell><strong>{{ shortName(room) }}</strong><small class="code-line">{{ room.fullName }}</small></TableCell><TableCell class="secondary-cell">{{ room.building }}</TableCell><TableCell class="code-cell">{{ room.id }}</TableCell><TableCell class="number-col capacity-number">{{ room.capacity ?? '—' }}</TableCell><TableCell class="number-col"><Button size="xs" variant="outline" @click="inspectRoom(room)">查询此教室</Button></TableCell></TableRow><TableRow v-if="!visibleDirectory.length"><TableCell colspan="6" class="empty-cell">{{ loadingCatalog ? '正在加载教室目录…' : '没有匹配的教室。' }}</TableCell></TableRow></TableBody></Table></div></TabsContent>
+      <TabsContent value="capacity" class="view-content"><div class="view-heading"><div><h2>全部教室 Capacity</h2><p>{{ catalogUpdatedAt ? '已从原站读取最新房间名称与容量。' : '当前显示随项目提供的目录快照；点击右上角更新可向原站获取最新目录。' }}</p></div><div class="directory-actions"><div class="directory-search"><Search :size="14" /><Input v-model="directorySearch" placeholder="搜索教室、编号、楼栋" aria-label="搜索教室" /></div><Button size="sm" variant="outline" @click="capacityAscending = !capacityAscending">容量 {{ capacityAscending ? '↑' : '↓' }}</Button><Badge variant="secondary">{{ visibleDirectory.length }} / {{ rooms.length }}</Badge></div></div><div class="table-panel directory-panel"><Table><TableHeader><TableRow><TableHead class="number-col">#</TableHead><TableHead>教室名称</TableHead><TableHead>楼栋</TableHead><TableHead>原站房间 ID</TableHead><TableHead class="number-col">Capacity</TableHead><TableHead class="number-col">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="(room, index) in visibleDirectory" :key="room.id"><TableCell class="number-col secondary-cell">{{ index + 1 }}</TableCell><TableCell><strong>{{ shortName(room) }}</strong><small class="code-line">{{ room.fullName }}</small></TableCell><TableCell class="secondary-cell">{{ room.building }}</TableCell><TableCell class="code-cell">{{ room.id }}</TableCell><TableCell class="number-col capacity-number">{{ room.capacity ?? '—' }}</TableCell><TableCell class="number-col"><Button size="xs" variant="outline" @click="inspectRoom(room)">筛选此教室</Button></TableCell></TableRow><TableRow v-if="!visibleDirectory.length"><TableCell colspan="6" class="empty-cell">{{ loadingCatalog ? '正在加载教室目录…' : '没有匹配的教室。' }}</TableCell></TableRow></TableBody></Table></div></TabsContent>
     </Tabs>
 
     <Dialog v-model:open="detailOpen"><DialogContent class="detail-dialog"><DialogHeader><DialogTitle>{{ detailRoom ? shortName(detailRoom) : '预约详情' }}</DialogTitle><DialogDescription>{{ detailRoom?.building }} · {{ detailRoom?.id }} · Capacity {{ detailRoom?.capacity }} <span v-if="detailBucket">· {{ detailBucket.label }}</span></DialogDescription></DialogHeader><div class="detail-note">显示 Scientia 列表报告中的全部字段。Staff 可能是授课人员；空白时不推断预约人。<a v-if="detailRoom && roomUrl(detailRoom.id)" :href="roomUrl(detailRoom.id)" target="_blank" rel="noopener noreferrer">原始列表 ↗</a><a v-if="detailRoom && roomGridUrl(detailRoom.id)" :href="roomGridUrl(detailRoom.id)" target="_blank" rel="noopener noreferrer">原始网格 ↗</a></div><div class="detail-table"><Table><TableHeader><TableRow><TableHead>日期 / 时间</TableHead><TableHead>Staff / 活动代码</TableHead><TableHead>活动类型 / 名称</TableHead><TableHead>位置 / 适用周次</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="(booking, index) in detailBookings" :key="`${booking.identifier}-${index}`"><TableCell><strong>{{ shortDate(booking.date) }}</strong><small class="code-line">{{ booking.start }}–{{ booking.end }} · {{ booking.duration }}</small></TableCell><TableCell class="code-cell"><strong>{{ booking.staff || '原站未提供 Staff' }}</strong><small class="code-line">{{ booking.identifier }}</small></TableCell><TableCell>{{ booking.activityType }}<small class="code-line">{{ booking.title }}</small><small class="code-line">活动人数 {{ booking.activityCapacity || '—' }}</small></TableCell><TableCell>{{ booking.location }}<small class="code-line">{{ booking.roomDescription }}</small><small class="code-line">房间容量 {{ booking.roomSize || detailRoom?.capacity }} · 第 {{ booking.sourceWeeks }} 周</small><details class="source-fields"><summary>原始字段</summary><pre>{{ JSON.stringify(booking.rawFields, null, 2) }}</pre></details></TableCell></TableRow><TableRow v-if="!detailBookings.length"><TableCell colspan="4" class="empty-cell">所选区间没有预约。</TableCell></TableRow></TableBody></Table></div></DialogContent></Dialog>

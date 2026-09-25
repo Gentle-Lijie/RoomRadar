@@ -65,16 +65,18 @@ body { margin: 0; min-width: 320px; font: 13px Inter, ui-sans-serif, system-ui, 
 .query-progress-label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; color: var(--foreground); font-size: 11px; font-weight: 600; }
 .query-progress-track { height: 7px !important; }
 .query-bar { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 12px 7px; }
-.filter-grid { display: grid; grid-template-columns: minmax(175px,1.4fr) 88px 88px 146px minmax(150px,1.2fr) 136px 136px 132px 98px 60px; gap: 8px; align-items: end; }
+.filter-grid { display: grid; grid-template-columns: minmax(175px,1.4fr) 88px 88px 146px 136px 136px 132px 98px 60px; gap: 8px; align-items: end; }
 .control-group { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .control-group label { font-size: 11px; font-weight: 600; }
 .control-group [data-slot="input"] { height: 31px; padding: 3px 8px; font-size: 12px; }
 .time-mode-buttons { display: flex; gap: 3px; }
 .time-mode-buttons [data-slot="button"] { height: 31px; flex: 1; min-width: 0; padding-inline: 5px; }
+.time-value-control { grid-column: span 2; }
+.date-range-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
 .field-error { display: block; color: var(--destructive); font-size: 10px; line-height: 1.25; }
 .filter-trigger { width: 100%; height: 31px; justify-content: space-between; min-width: 0; }
 .filter-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.filter-popover { width: 290px; max-height: 360px; overflow-y: auto; padding: 8px; } .week-popover { width: 210px; }
+.filter-popover { width: 290px; max-height: 360px; overflow-y: auto; padding: 8px; } .week-popover { width: var(--reka-popover-trigger-width, 280px); }
 .period-popover { width: 190px; padding: 5px; } .period-option { width: 100%; justify-content: flex-start; }
 .query-action { height: 31px; }
 .popover-heading { display: flex; align-items: center; justify-content: space-between; font-weight: 650; padding: 2px 3px 6px; border-bottom: 1px solid var(--border); }
@@ -155,5 +157,5 @@ body { margin: 0; min-width: 320px; font: 13px Inter, ui-sans-serif, system-ui, 
 .source-fields pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; }
 .detail-table { max-height: 55vh; overflow: auto; border: 1px solid var(--border); border-radius: 5px; }
 .detail-table [data-slot="table"] { min-width: 680px; }
-@media(max-width:1350px) { .filter-grid { grid-template-columns: repeat(4,minmax(0,1fr)); } .view-heading { align-items: flex-start; padding: 8px 0; } .view-heading p { display: block; margin-top: 2px; } }
-@media(max-width:700px) { .app-shell { padding: 0 10px 18px; } .app-header { flex-wrap: wrap; padding: 8px 0; gap: 5px; } .app-title>span { display: none; } .header-right { width: 100%; justify-content: space-between; } .query-notice { line-height: 1.35; padding: 6px 0; } .filter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .building-control,.week-control,.time-mode-control { grid-column: span 2; } .query-summary { width: 100%; margin-left: 0; padding: 4px 0 1px; } .view-tabs-list { width: 100%; gap: 2px; } .view-tabs-list [data-slot="tabs-trigger"] { font-size: 11px; padding: 0 4px; } .view-heading { flex-wrap: wrap; } .matrix-toolbar,.directory-actions { flex-wrap: wrap; } .directory-search { width: 100%; } }
+@media(max-width:1150px) { .filter-grid { grid-template-columns: repeat(4,minmax(0,1fr)); } .building-control,.query-action,.reset-filters { grid-column: span 2; } .view-heading { align-items: flex-start; padding: 8px 0; } .view-heading p { display: block; margin-top: 2px; } }
+@media(max-width:700px) { .app-shell { padding: 0 10px 18px; } .app-header { flex-wrap: wrap; padding: 8px 0; gap: 5px; } .app-title>span { display: none; } .header-right { width: 100%; justify-content: space-between; } .query-notice { line-height: 1.35; padding: 6px 0; } .filter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .building-control,.time-mode-control,.time-value-control,.reset-filters { grid-column: span 2; } .query-action { grid-column: auto; } .query-summary { width: 100%; margin-left: 0; padding: 4px 0 1px; } .view-tabs-list { width: 100%; gap: 2px; } .view-tabs-list [data-slot="tabs-trigger"] { font-size: 11px; padding: 0 4px; } .view-heading { flex-wrap: wrap; } .matrix-toolbar,.directory-actions { flex-wrap: wrap; } .directory-search { width: 100%; } }

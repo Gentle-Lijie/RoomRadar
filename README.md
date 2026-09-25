@@ -28,7 +28,10 @@ No timetable responses are cached or stored.
 To reduce waiting on Scientia, the backend combines multiple rooms and a range
 of weeks in one upstream request, limits upstream requests to two at a time,
 and streams completed batches back to the UI. Changing a filter cancels the
-previous browser request. The source's report endpoint accepts GET; the browser
+previous browser request and clears its results; the next source query starts
+only when the user clicks **立即查询**. Selecting a room from the capacity
+directory fills the room filter and returns to the list without querying.
+The source's report endpoint accepts GET; the browser
 talks only to the local POST endpoint.
 
 Scientia's list report exposes a booking/activity identifier, type, name,

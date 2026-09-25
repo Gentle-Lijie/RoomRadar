@@ -46,12 +46,11 @@ export function useRoomSearch() {
   const directorySearch = ref('');
   const capacityAscending = ref(true);
   const queryState = ref('idle');
+  const queryDirty = ref(false);
   const queryError = ref('');
   const progress = ref({ completed: 0, total: 0 });
   const fetchedAt = ref(null);
   let activeController = null;
-  let debounceTimer = null;
-  let ready = true;
   let querySequence = 0;
 
   function weekOf(isoDate) {
@@ -114,6 +113,8 @@ export function useRoomSearch() {
       && (!minimumCapacity.value || room.capacity >= Number(minimumCapacity.value))
       && (!maximumCapacity.value || room.capacity <= Number(maximumCapacity.value));
   }
+  const matchingRooms = computed(() => rooms.value.filter((room) => roomMatches(room) && (!selectedRoomIds.value.length || selectedRoomIds.value.includes(room.id)))
+    .sort((a, b) => a.building.localeCompare(b.building) || a.capacity - b.capacity));
   const visibleDirectory = computed(() => rooms.value.filter((room) => roomMatches(room) && `${room.name} ${room.id} ${room.building}`.toLowerCase().includes(directorySearch.value.toLowerCase())).sort((a, b) => (capacityAscending.value ? a.capacity - b.capacity : b.capacity - a.capacity) || a.building.localeCompare(b.building)));
   const visibleRooms = computed(() => resultRooms.value);
   const visibleBuildings = computed(() => [...new Set(visibleRooms.value.map((room) => room.building))]);
@@ -219,8 +220,7 @@ export function useRoomSearch() {
       if (payload.academicStart) academicStart.value = payload.academicStart;
       if (payload.maxWeek) maxWeek.value = payload.maxWeek;
       if (payload.issues?.length) catalogError.value = payload.issues.join('; ');
-      ready = true;
-      if (directoryChanged && queryState.value !== 'idle') scheduleQuery();
+      if (directoryChanged && (queryState.value !== 'idle' || resultRooms.value.length)) invalidateQuery();
     } catch (error) {
       catalogError.value = error.message;
     } finally {
@@ -229,16 +229,14 @@ export function useRoomSearch() {
   }
 
   function cancelQuery() {
-    if (debounceTimer) clearTimeout(debounceTimer);
     activeController?.abort();
+    activeController = null;
   }
 
   async function runQuery() {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    activeController?.abort();
+    cancelQuery();
     const sequence = ++querySequence;
-    const chosenRooms = rooms.value.filter((room) => roomMatches(room) && (!selectedRoomIds.value.length || selectedRoomIds.value.includes(room.id)))
-      .sort((a, b) => a.building.localeCompare(b.building) || a.capacity - b.capacity);
+    const chosenRooms = matchingRooms.value;
     resultRooms.value = chosenRooms;
     roomResults.value = {};
     progress.value = { completed: 0, total: chosenRooms.length };
@@ -249,6 +247,7 @@ export function useRoomSearch() {
       queryError.value = Object.values(validationErrors.value)[0];
       return;
     }
+    queryDirty.value = false;
     const controller = new AbortController();
     activeController = controller;
     queryState.value = 'loading';
@@ -305,35 +304,33 @@ export function useRoomSearch() {
       if (sequence !== querySequence || controller.signal.aborted) return;
       queryState.value = 'error';
       queryError.value = error.message;
+    } finally {
+      if (activeController === controller) activeController = null;
     }
   }
 
-  function scheduleQuery() {
-    if (!ready) return;
+  function invalidateQuery() {
     cancelQuery();
+    querySequence += 1;
     resultRooms.value = [];
     roomResults.value = {};
     progress.value = { completed: 0, total: 0 };
-    if (!canQuery.value) {
-      queryState.value = 'error';
-      queryError.value = Object.values(validationErrors.value)[0];
-      return;
-    }
-    queryState.value = 'loading';
-    queryError.value = '';
-    debounceTimer = setTimeout(runQuery, 450);
+    fetchedAt.value = null;
+    queryDirty.value = true;
+    queryError.value = canQuery.value ? '' : Object.values(validationErrors.value)[0];
+    queryState.value = canQuery.value ? 'idle' : 'error';
   }
-  watch([selectedBuildings, selectedRoomIds, selectedDays, minimumCapacity, maximumCapacity, periods, timeMode], scheduleQuery);
-  watch(selectedWeeks, () => { if (timeMode.value === 'week') scheduleQuery(); });
-  watch([dateFrom, dateTo], () => { if (timeMode.value === 'date') scheduleQuery(); });
+  watch([selectedBuildings, selectedRoomIds, selectedDays, minimumCapacity, maximumCapacity, periods, timeMode], invalidateQuery);
+  watch(selectedWeeks, () => { if (timeMode.value === 'week') invalidateQuery(); });
+  watch([dateFrom, dateTo], () => { if (timeMode.value === 'date') invalidateQuery(); });
   onMounted(loadCatalog);
   onUnmounted(cancelQuery);
 
   return {
     rooms, resultRooms, roomResults, academicStart, maxWeek, catalogUpdatedAt, catalogError, loadingCatalog,
     selectedBuildings, selectedRoomIds, selectedWeeks, selectedDays, minimumCapacity, maximumCapacity, dateFrom, dateTo, periods, timeMode,
-    directorySearch, capacityAscending, queryState, queryError, progress, fetchedAt,
-    buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
+    directorySearch, capacityAscending, queryState, queryDirty, queryError, progress, fetchedAt,
+    buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, matchingRooms, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
     dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery,
   };
 }
