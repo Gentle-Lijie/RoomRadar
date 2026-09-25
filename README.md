@@ -68,7 +68,8 @@ the single-origin production server with `npm start`.
 
 ## Deployment
 
-Copy `.env.example` to `.env`, set the frontend and backend hosts, then run:
+Copy `.env.example` to `.env`, set `FRONTEND_PORT` / `BACKEND_PORT` (and
+optionally `BACKEND_HOST` when the backend runs on another machine), then run:
 
 ```sh
 ./deploy.sh
@@ -76,8 +77,8 @@ Copy `.env.example` to `.env`, set the frontend and backend hosts, then run:
 
 The script installs dependencies, builds the web app with `VITE_API_BASE` set
 to `BACKEND_HOST`, and manages two pm2 processes: `${PM2_APP_NAME}-api` (the
-Express API, `API_PORT`) and `${PM2_APP_NAME}-web` (`pm2 serve` for the static
-frontend, `WEB_PORT`). `.env` is gitignored and never committed.
+Express API, `BACKEND_PORT`) and `${PM2_APP_NAME}-web` (`pm2 serve` for the
+static frontend, `FRONTEND_PORT`). `.env` is gitignored and never committed.
 
 The upstream room list is at `http://timetablingunnc.nottingham.ac.uk:8017/room.htm`.
 It loads room metadata from `/js/filter.js` and fetches detailed records under

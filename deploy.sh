@@ -10,9 +10,10 @@ if [ -f .env ]; then
 fi
 
 APP_NAME="${PM2_APP_NAME:-unnc-room-check}"
-API_PORT="${API_PORT:-3001}"
-WEB_PORT="${WEB_PORT:-8080}"
-BACKEND_HOST="${BACKEND_HOST:-http://127.0.0.1:${API_PORT}}"
+FRONTEND_PORT="${FRONTEND_PORT:-8080}"
+BACKEND_PORT="${BACKEND_PORT:-3001}"
+# 跨机部署时在 .env 里显式设置 BACKEND_HOST
+BACKEND_HOST="${BACKEND_HOST:-http://127.0.0.1:${BACKEND_PORT}}"
 
 command -v pm2 >/dev/null 2>&1 || { echo "安装 pm2..."; npm install -g pm2; }
 
@@ -26,12 +27,12 @@ echo "重启 pm2 进程..."
 pm2 delete "${APP_NAME}-api" >/dev/null 2>&1 || true
 pm2 delete "${APP_NAME}-web" >/dev/null 2>&1 || true
 
-PORT="$API_PORT" pm2 start apps/api/src/index.js --name "${APP_NAME}-api" --time
-pm2 serve apps/web/dist "$WEB_PORT" --name "${APP_NAME}-web" --spa
+PORT="$BACKEND_PORT" pm2 start apps/api/src/index.js --name "${APP_NAME}-api" --time
+pm2 serve apps/web/dist "$FRONTEND_PORT" --name "${APP_NAME}-web" --spa
 
 pm2 save
 echo
 echo "部署完成："
-echo "  前端  ${FRONTEND_HOST:-http://127.0.0.1:${WEB_PORT}}  (pm2: ${APP_NAME}-web, 端口 ${WEB_PORT})"
-echo "  后端  ${BACKEND_HOST}  (pm2: ${APP_NAME}-api, 端口 ${API_PORT})"
+echo "  前端  http://127.0.0.1:${FRONTEND_PORT}  (pm2: ${APP_NAME}-web)"
+echo "  后端  ${BACKEND_HOST}  (pm2: ${APP_NAME}-api)"
 pm2 list
