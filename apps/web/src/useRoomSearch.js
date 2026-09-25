@@ -35,7 +35,8 @@ export function useRoomSearch() {
   const loadingCatalog = ref(false);
   const selectedBuildings = ref([]);
   const selectedRoomIds = ref([]);
-  const selectedWeeks = ref([...new Set([initialWeek(today), initialWeek(initialEnd)].map((week) => Math.max(1, Math.min(21, week))))]);
+  const selectedWeeks = ref([Math.max(1, Math.min(21, initialWeek(today)))]);
+  const timeMode = ref('date');
   const selectedDays = ref([1, 2, 3, 4, 5]);
   const minimumCapacity = ref('');
   const maximumCapacity = ref('');
@@ -60,17 +61,54 @@ export function useRoomSearch() {
   function dateOf(week, day) { return shiftDate(academicStart.value, (week - 1) * 7 + day - 1); }
   const buildingNames = computed(() => [...new Set(rooms.value.map((room) => room.building))].sort());
   const weekOptions = computed(() => Array.from({ length: maxWeek.value }, (_, index) => ({ value: index + 1, label: `第 ${index + 1} 周` })));
+  const effectiveWeeks = computed(() => {
+    if (timeMode.value === 'week') return [...new Set(selectedWeeks.value)].sort((a, b) => a - b);
+    const from = Date.parse(`${dateFrom.value}T00:00:00Z`);
+    const to = Date.parse(`${dateTo.value}T00:00:00Z`);
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to < from || to - from > 200 * MS_DAY) return [];
+    const weeks = new Set();
+    for (let time = from; time <= to; time += MS_DAY) weeks.add(weekOf(new Date(time).toISOString().slice(0, 10)));
+    return [...weeks].sort((a, b) => a - b);
+  });
   const visibleDates = computed(() => {
+    if (timeMode.value === 'week') return effectiveWeeks.value.flatMap((week) => selectedDays.value.map((day) => dateOf(week, day))).sort();
     const dates = [];
     const from = Date.parse(`${dateFrom.value}T00:00:00Z`);
     const to = Date.parse(`${dateTo.value}T00:00:00Z`);
-    if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) return dates;
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to < from || to - from > 200 * MS_DAY) return dates;
     for (let time = from; time <= to; time += MS_DAY) {
       const date = new Date(time).toISOString().slice(0, 10);
-      if (selectedWeeks.value.includes(weekOf(date)) && selectedDays.value.includes(dayOf(date))) dates.push(date);
+      if (selectedDays.value.includes(dayOf(date))) dates.push(date);
     }
     return dates;
   });
+  const validationErrors = computed(() => {
+    const errors = {};
+    const min = minimumCapacity.value === '' ? null : Number(minimumCapacity.value);
+    const max = maximumCapacity.value === '' ? null : Number(maximumCapacity.value);
+    if (min !== null && (!Number.isInteger(min) || min < 0 || min > 5000)) errors.minimumCapacity = '最小容量须为 0–5000 的整数';
+    if (max !== null && (!Number.isInteger(max) || max < 0 || max > 5000)) errors.maximumCapacity = '最大容量须为 0–5000 的整数';
+    if (!errors.minimumCapacity && !errors.maximumCapacity && min !== null && max !== null && min > max) errors.maximumCapacity = '最大容量不能小于最小容量';
+    if (!selectedDays.value.length) errors.days = '至少选择一个星期';
+    if (!PERIOD_OPTIONS.some((option) => option.value === periods.value)) errors.periods = '请选择有效时段';
+    if (!['date', 'week'].includes(timeMode.value)) errors.timeMode = '请选择有效时间筛选方式';
+    if (timeMode.value === 'week') {
+      if (!selectedWeeks.value.length || selectedWeeks.value.some((week) => !Number.isInteger(week) || week < 1 || week > maxWeek.value)) errors.weeks = '至少选择一个有效周次';
+    } else {
+      const valid = (date) => /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(`${date}T00:00:00Z`)) && new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) === date;
+      if (!valid(dateFrom.value)) errors.dateFrom = '请选择有效开始日期';
+      if (!valid(dateTo.value)) errors.dateTo = '请选择有效结束日期';
+      if (!errors.dateFrom && !errors.dateTo) {
+        const span = Date.parse(`${dateTo.value}T00:00:00Z`) - Date.parse(`${dateFrom.value}T00:00:00Z`);
+        if (span < 0) errors.dateTo = '结束日期不能早于开始日期';
+        else if (span > 200 * MS_DAY) errors.dateTo = '日期跨度不能超过 200 天';
+        else if (effectiveWeeks.value.some((week) => week < 1 || week > maxWeek.value)) errors.dateTo = '日期须在当前学年可查询周次内';
+        else if (!errors.days && !visibleDates.value.length) errors.days = '日期范围内没有已选星期';
+      }
+    }
+    return errors;
+  });
+  const canQuery = computed(() => !Object.keys(validationErrors.value).length);
   function roomMatches(room) {
     return (!selectedBuildings.value.length || selectedBuildings.value.includes(room.building))
       && (!minimumCapacity.value || room.capacity >= Number(minimumCapacity.value))
@@ -79,12 +117,34 @@ export function useRoomSearch() {
   const visibleDirectory = computed(() => rooms.value.filter((room) => roomMatches(room) && `${room.name} ${room.id} ${room.building}`.toLowerCase().includes(directorySearch.value.toLowerCase())).sort((a, b) => (capacityAscending.value ? a.capacity - b.capacity : b.capacity - a.capacity) || a.building.localeCompare(b.building)));
   const visibleRooms = computed(() => resultRooms.value);
   const visibleBuildings = computed(() => [...new Set(visibleRooms.value.map((room) => room.building))]);
-  const visibleBookings = computed(() => Object.values(roomResults.value).flatMap((result) => result.events ?? []).filter((event) => visibleDates.value.includes(event.date)));
+  const visibleBookings = computed(() => {
+    const option = PERIOD_OPTIONS.find((item) => item.value === periods.value);
+    if (!option) return [];
+    const selectedDates = new Set(visibleDates.value);
+    return Object.values(roomResults.value).flatMap((result) => result.events ?? [])
+      .filter((event) => selectedDates.has(event.date) && minutes(event.start) < option.end && minutes(event.end) > option.start);
+  });
+  const bookingsIndex = computed(() => {
+    const byRoom = new Map();
+    const byRoomDate = new Map();
+    for (const event of visibleBookings.value) {
+      if (!byRoom.has(event.roomId)) byRoom.set(event.roomId, []);
+      byRoom.get(event.roomId).push(event);
+      if (!byRoomDate.has(event.roomId)) byRoomDate.set(event.roomId, new Map());
+      const dates = byRoomDate.get(event.roomId);
+      if (!dates.has(event.date)) dates.set(event.date, []);
+      dates.get(event.date).push(event);
+    }
+    const byTime = (left, right) => left.date.localeCompare(right.date) || left.start.localeCompare(right.start);
+    for (const events of byRoom.values()) events.sort(byTime);
+    for (const dates of byRoomDate.values()) for (const events of dates.values()) events.sort(byTime);
+    return { byRoom, byRoomDate };
+  });
   const failedCount = computed(() => Object.values(roomResults.value).filter((result) => result.error).length);
   const focusDate = computed(() => visibleDates.value[0] ?? dateFrom.value);
 
   function bookingsForRoom(roomId, date = null) {
-    return visibleBookings.value.filter((event) => event.roomId === roomId && (!date || event.date === date)).sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+    return date ? bookingsIndex.value.byRoomDate.get(roomId)?.get(date) ?? [] : bookingsIndex.value.byRoom.get(roomId) ?? [];
   }
   function isRoomLoaded(roomId) { return Boolean(roomResults.value[roomId] && !roomResults.value[roomId].error); }
   function roomError(roomId) { return roomResults.value[roomId]?.error ?? ''; }
@@ -96,8 +156,9 @@ export function useRoomSearch() {
     let cursor = option.start;
     const free = [];
     for (const event of bookingsForRoom(roomId, date)) {
-      const start = Math.max(option.start, minutes(event.start));
-      const end = Math.min(option.end, minutes(event.end));
+      const start = Math.max(option.start, Math.min(option.end, minutes(event.start)));
+      const end = Math.max(option.start, Math.min(option.end, minutes(event.end)));
+      if (end <= start) continue;
       if (start > cursor) free.push(`${clock(cursor)}–${clock(start)}`);
       cursor = Math.max(cursor, end);
     }
@@ -158,7 +219,6 @@ export function useRoomSearch() {
       if (payload.academicStart) academicStart.value = payload.academicStart;
       if (payload.maxWeek) maxWeek.value = payload.maxWeek;
       if (payload.issues?.length) catalogError.value = payload.issues.join('; ');
-      syncWeeksToDates();
       ready = true;
       if (directoryChanged && queryState.value !== 'idle') scheduleQuery();
     } catch (error) {
@@ -173,19 +233,6 @@ export function useRoomSearch() {
     activeController?.abort();
   }
 
-  function syncWeeksToDates() {
-    const from = Date.parse(`${dateFrom.value}T00:00:00Z`);
-    const to = Date.parse(`${dateTo.value}T00:00:00Z`);
-    if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) return;
-    const weeks = new Set();
-    for (let time = from; time <= to && weeks.size <= maxWeek.value; time += MS_DAY) {
-      const week = weekOf(new Date(time).toISOString().slice(0, 10));
-      if (week >= 1 && week <= maxWeek.value) weeks.add(week);
-    }
-    const next = [...weeks].sort((a, b) => a - b);
-    if (next.length !== selectedWeeks.value.length || next.some((week, index) => week !== selectedWeeks.value[index])) selectedWeeks.value = next;
-  }
-
   async function runQuery() {
     if (debounceTimer) clearTimeout(debounceTimer);
     activeController?.abort();
@@ -197,9 +244,9 @@ export function useRoomSearch() {
     progress.value = { completed: 0, total: chosenRooms.length };
     fetchedAt.value = null;
     queryError.value = '';
-    if (!selectedWeeks.value.length || !selectedDays.value.length || !visibleDates.value.length) {
+    if (!canQuery.value) {
       queryState.value = 'error';
-      queryError.value = '请选择有效的周次、日期范围和星期。';
+      queryError.value = Object.values(validationErrors.value)[0];
       return;
     }
     const controller = new AbortController();
@@ -214,10 +261,10 @@ export function useRoomSearch() {
         body: JSON.stringify({
           roomIds: chosenRooms.map((room) => room.id),
           academicStart: academicStart.value,
-          weeks: selectedWeeks.value,
+          weeks: effectiveWeeks.value,
           days: selectedDays.value,
-          dateFrom: dateFrom.value,
-          dateTo: dateTo.value,
+          dateFrom: timeMode.value === 'date' ? dateFrom.value : null,
+          dateTo: timeMode.value === 'date' ? dateTo.value : null,
           periods: periods.value,
         }),
       });
@@ -264,23 +311,29 @@ export function useRoomSearch() {
   function scheduleQuery() {
     if (!ready) return;
     cancelQuery();
-    queryState.value = 'loading';
-    queryError.value = '';
     resultRooms.value = [];
     roomResults.value = {};
     progress.value = { completed: 0, total: 0 };
+    if (!canQuery.value) {
+      queryState.value = 'error';
+      queryError.value = Object.values(validationErrors.value)[0];
+      return;
+    }
+    queryState.value = 'loading';
+    queryError.value = '';
     debounceTimer = setTimeout(runQuery, 450);
   }
-  watch([dateFrom, dateTo], syncWeeksToDates);
-  watch([selectedBuildings, selectedRoomIds, selectedWeeks, selectedDays, minimumCapacity, maximumCapacity, dateFrom, dateTo, periods], scheduleQuery);
+  watch([selectedBuildings, selectedRoomIds, selectedDays, minimumCapacity, maximumCapacity, periods, timeMode], scheduleQuery);
+  watch(selectedWeeks, () => { if (timeMode.value === 'week') scheduleQuery(); });
+  watch([dateFrom, dateTo], () => { if (timeMode.value === 'date') scheduleQuery(); });
   onMounted(loadCatalog);
   onUnmounted(cancelQuery);
 
   return {
     rooms, resultRooms, roomResults, academicStart, maxWeek, catalogUpdatedAt, catalogError, loadingCatalog,
-    selectedBuildings, selectedRoomIds, selectedWeeks, selectedDays, minimumCapacity, maximumCapacity, dateFrom, dateTo, periods,
+    selectedBuildings, selectedRoomIds, selectedWeeks, selectedDays, minimumCapacity, maximumCapacity, dateFrom, dateTo, periods, timeMode,
     directorySearch, capacityAscending, queryState, queryError, progress, fetchedAt,
-    buildingNames, weekOptions, visibleDates, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
+    buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
     dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery,
   };
 }

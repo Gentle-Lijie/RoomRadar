@@ -20,7 +20,7 @@ function badRequest(message) {
 
 function validDate(value, label) {
   if (value == null || value === '') return null;
-  if (typeof value !== 'string' || !ISO_DATE.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) throw badRequest(`${label} must be YYYY-MM-DD`);
+  if (typeof value !== 'string' || !ISO_DATE.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`)) || new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value) throw badRequest(`${label} must be a valid YYYY-MM-DD date`);
   return value;
 }
 

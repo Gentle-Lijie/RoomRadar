@@ -9,7 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ChevronDown, RotateCcw, Search, ArrowLeftRight, Info, RefreshCw } from '@lucide/vue';
+import { Progress } from '@/components/ui/progress';
+import { ChevronDown, RotateCcw, Search, ArrowLeftRight, Info, RefreshCw, ChevronLeft, ChevronRight } from '@lucide/vue';
 
 const viewNames = ['list', 'building', 'matrix', 'capacity'];
 const view = ref(viewNames.includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'list');
@@ -25,26 +26,48 @@ watchEffect(() => { document.documentElement.dataset.palette = 'blue'; });
 
 const {
   rooms, roomResults, academicStart, maxWeek, catalogUpdatedAt, catalogError, loadingCatalog,
-  selectedBuildings, selectedRoomIds, selectedWeeks, selectedDays, minimumCapacity, maximumCapacity, dateFrom, dateTo, periods,
+  selectedBuildings, selectedRoomIds, selectedWeeks, selectedDays, minimumCapacity, maximumCapacity, dateFrom, dateTo, periods, timeMode,
   directorySearch, capacityAscending, queryState, queryError, progress, fetchedAt,
-  buildingNames, weekOptions, visibleDates, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
+  buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
   dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery,
 } = useRoomSearch();
 const matrixDimension = ref('date');
+const matrixView = ref('timeline');
 const transposed = ref(false);
 const detailOpen = ref(false);
 const detailRoom = ref(null);
 const detailBucket = ref(null);
+const detailSlot = ref(null);
+const timelineDate = ref(null);
 const weekdayNames = ['一', '二', '三', '四', '五', '六', '日'];
 const periodLabel = computed(() => PERIOD_OPTIONS.find((option) => option.value === periods.value)?.label ?? '08:00–18:00');
+const progressPercent = computed(() => progress.value.total ? Math.round(progress.value.completed / progress.value.total * 100) : null);
 const matrixBuckets = computed(() => matrixDimension.value === 'date'
   ? visibleDates.value.map((date) => ({ key: date, label: shortDate(date), kind: 'date' }))
-  : selectedWeeks.value.filter((week) => visibleDates.value.some((date) => weekOf(date) === week)).map((week) => ({ key: week, label: `第 ${week} 周`, kind: 'week' })));
+  : effectiveWeeks.value.filter((week) => visibleDates.value.some((date) => weekOf(date) === week)).map((week) => ({ key: week, label: `第 ${week} 周`, kind: 'week' })));
+const activeTimelineDate = computed(() => visibleDates.value.includes(timelineDate.value) ? timelineDate.value : visibleDates.value[0] ?? null);
+const activeTimelineIndex = computed(() => visibleDates.value.indexOf(activeTimelineDate.value));
+const timelineSlots = computed(() => {
+  const option = PERIOD_OPTIONS.find((item) => item.value === periods.value);
+  if (!option) return [];
+  return Array.from({ length: (option.end - option.start) / 30 }, (_, index) => {
+    const start = option.start + index * 30;
+    return { start, end: start + 30, label: `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}` };
+  });
+});
+function minutes(time) { return Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)); }
+function slotBookings(roomId, slot) {
+  if (!activeTimelineDate.value) return [];
+  return bookingsForRoom(roomId, activeTimelineDate.value).filter((event) => minutes(event.start) < slot.end && minutes(event.end) > slot.start);
+}
+function moveTimelineDate(offset) {
+  timelineDate.value = visibleDates.value[activeTimelineIndex.value + offset] ?? activeTimelineDate.value;
+}
 const detailBookings = computed(() => {
   if (!detailRoom.value) return [];
   const events = bookingsForRoom(detailRoom.value.id);
-  if (!detailBucket.value) return events;
-  return events.filter((event) => detailBucket.value.kind === 'date' ? event.date === detailBucket.value.key : event.week === detailBucket.value.key);
+  const inBucket = detailBucket.value ? events.filter((event) => detailBucket.value.kind === 'date' ? event.date === detailBucket.value.key : event.week === detailBucket.value.key) : events;
+  return detailSlot.value ? inBucket.filter((event) => minutes(event.start) < detailSlot.value.end && minutes(event.end) > detailSlot.value.start) : inBucket;
 });
 function toggleItem(type, item) {
   const list = type === 'building' ? selectedBuildings : type === 'week' ? selectedWeeks : selectedDays;
@@ -58,7 +81,13 @@ function resetFilters() {
   minimumCapacity.value = '';
   maximumCapacity.value = '';
   periods.value = '1-20';
-  const currentWeek = Math.max(1, Math.min(maxWeek.value, weekOf(dateFrom.value)));
+  timeMode.value = 'date';
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const read = (type) => parts.find((part) => part.type === type).value;
+  const today = `${read('year')}-${read('month')}-${read('day')}`;
+  dateFrom.value = today;
+  dateTo.value = new Date(Date.parse(`${today}T00:00:00Z`) + 6 * 86_400_000).toISOString().slice(0, 10);
+  const currentWeek = Math.max(1, Math.min(maxWeek.value, weekOf(today)));
   selectedWeeks.value = [currentWeek];
 }
 function shortDate(isoDate) {
@@ -68,9 +97,10 @@ function shortDate(isoDate) {
 function shortName(room) {
   return room.name.replace(new RegExp(`^${room.building.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s-]*`, 'i'), '').trim() || room.name;
 }
-function openDetails(room, bucket = null) {
+function openDetails(room, bucket = null, slot = null) {
   detailRoom.value = room;
   detailBucket.value = bucket;
+  detailSlot.value = slot;
   detailOpen.value = true;
 }
 function inspectRoom(room) {
@@ -96,6 +126,11 @@ function inspectRoom(room) {
       </div>
     </header>
 
+    <div v-if="queryState === 'loading'" class="query-progress" role="status" aria-live="polite">
+      <div class="query-progress-label"><span>正在查询 Scientia</span><span>{{ progress.completed }} / {{ progress.total || '…' }} 间 · {{ progressPercent === null ? '准备中' : `${progressPercent}%` }}</span></div>
+      <Progress :model-value="progressPercent" aria-label="教室查询进度" class="query-progress-track" />
+    </div>
+
     <div class="query-notice" role="status" aria-live="polite">
       <Info :size="14" />
       <span v-if="queryState === 'loading'">实时查询中：已返回 {{ progress.completed }} / {{ progress.total || '…' }} 间教室。更改筛选会取消旧查询。</span>
@@ -103,7 +138,7 @@ function inspectRoom(room) {
       <span v-else-if="queryState === 'done'">查询完成：{{ progress.completed }} 间教室 · {{ visibleBookings.length }} 条预约<span v-if="failedCount"> · {{ failedCount }} 间失败</span> · {{ fetchedAt ? new Date(fetchedAt).toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '' }}。课表每次查询均从原站获取。</span>
       <span v-else-if="loadingCatalog">正在从 Scientia 更新楼栋、容量和周次；可用当前目录直接查询实时课表…</span>
       <span v-else-if="catalogError">原站部分目录信息未更新：{{ catalogError }}。仍可查询实时课表。<Button variant="link" size="xs" @click="loadCatalog">重试</Button></span>
-      <span v-else>选择楼栋、容量、周次和日期即可自动查询，也可点击“立即查询”。每次查询都直接访问 Scientia。</span>
+      <span v-else>选择楼栋、容量和一种时间筛选方式即可自动查询，也可点击“立即查询”。每次查询都直接访问 Scientia。</span>
     </div>
 
     <section class="query-bar" aria-label="查询条件">
@@ -118,9 +153,10 @@ function inspectRoom(room) {
             </PopoverContent>
           </Popover>
         </div>
-        <div class="control-group"><label for="min-capacity">最小容量</label><Input id="min-capacity" v-model="minimumCapacity" type="number" min="0" placeholder="不限" /></div>
-        <div class="control-group"><label for="max-capacity">最大容量</label><Input id="max-capacity" v-model="maximumCapacity" type="number" min="0" placeholder="不限" /></div>
-        <div class="control-group week-control">
+        <div class="control-group"><label for="min-capacity">最小容量</label><Input id="min-capacity" v-model="minimumCapacity" type="number" min="0" placeholder="不限" :aria-invalid="!!validationErrors.minimumCapacity" /><small v-if="validationErrors.minimumCapacity" class="field-error" role="alert">{{ validationErrors.minimumCapacity }}</small></div>
+        <div class="control-group"><label for="max-capacity">最大容量</label><Input id="max-capacity" v-model="maximumCapacity" type="number" min="0" placeholder="不限" :aria-invalid="!!validationErrors.maximumCapacity" /><small v-if="validationErrors.maximumCapacity" class="field-error" role="alert">{{ validationErrors.maximumCapacity }}</small></div>
+        <div class="control-group time-mode-control"><label>时间筛选</label><div class="time-mode-buttons" role="group" aria-label="时间筛选方式"><Button size="sm" :variant="timeMode === 'date' ? 'secondary' : 'outline'" :aria-pressed="timeMode === 'date'" @click="timeMode = 'date'">按日期</Button><Button size="sm" :variant="timeMode === 'week' ? 'secondary' : 'outline'" :aria-pressed="timeMode === 'week'" @click="timeMode = 'week'">按周次</Button></div></div>
+        <div v-if="timeMode === 'week'" class="control-group week-control">
           <label>周次（可多选）</label>
           <Popover>
             <PopoverTrigger as-child><Button variant="outline" class="filter-trigger"><span>{{ selectedWeeks.length ? selectedWeeks.map((week) => `第${week}周`).join('、') : '选择周次' }}</span><ChevronDown :size="15" /></Button></PopoverTrigger>
@@ -129,9 +165,10 @@ function inspectRoom(room) {
               <label v-for="option in weekOptions" :key="option.value" class="check-option"><Checkbox :model-value="selectedWeeks.includes(option.value)" @update:model-value="toggleItem('week', option.value)" /><span>{{ option.label }}</span><small>{{ dateOf(option.value, 1).slice(5) }} 起</small></label>
             </PopoverContent>
           </Popover>
+          <small v-if="validationErrors.weeks" class="field-error" role="alert">{{ validationErrors.weeks }}</small>
         </div>
-        <div class="control-group date-control"><label for="date-from">开始日期</label><Input id="date-from" v-model="dateFrom" type="date" /></div>
-        <div class="control-group date-control"><label for="date-to">结束日期</label><Input id="date-to" v-model="dateTo" type="date" /></div>
+        <div v-if="timeMode === 'date'" class="control-group date-control"><label for="date-from">开始日期</label><Input id="date-from" v-model="dateFrom" type="date" :aria-invalid="!!validationErrors.dateFrom" /><small v-if="validationErrors.dateFrom" class="field-error" role="alert">{{ validationErrors.dateFrom }}</small></div>
+        <div v-if="timeMode === 'date'" class="control-group date-control"><label for="date-to">结束日期</label><Input id="date-to" v-model="dateTo" type="date" :aria-invalid="!!validationErrors.dateTo" /><small v-if="validationErrors.dateTo" class="field-error" role="alert">{{ validationErrors.dateTo }}</small></div>
         <div class="control-group period-control">
           <label>时段</label>
           <Popover>
@@ -139,12 +176,13 @@ function inspectRoom(room) {
             <PopoverContent align="start" class="period-popover"><Button v-for="option in PERIOD_OPTIONS" :key="option.value" size="sm" :variant="periods === option.value ? 'secondary' : 'ghost'" class="period-option" @click="periods = option.value">{{ option.label }}</Button></PopoverContent>
           </Popover>
         </div>
-        <Button size="sm" class="query-action" :disabled="!rooms.length" @click="runQuery"><Search :size="14" /> 立即查询</Button>
+        <Button size="sm" class="query-action" :disabled="!rooms.length || !canQuery" @click="runQuery"><Search :size="14" /> 立即查询</Button>
         <Button variant="ghost" size="sm" class="reset-filters" @click="resetFilters"><RotateCcw :size="14" /> 重置</Button>
       </div>
       <div class="filter-bottom">
         <span class="filter-bottom-label">星期</span>
         <Button v-for="day in 7" :key="day" size="xs" :variant="selectedDays.includes(day) ? 'secondary' : 'ghost'" :aria-pressed="selectedDays.includes(day)" @click="toggleItem('day', day)">周{{ weekdayNames[day - 1] }}</Button>
+        <small v-if="validationErrors.days" class="field-error" role="alert">{{ validationErrors.days }}</small>
         <Badge v-if="selectedRoomIds.length" variant="outline">指定教室：{{ selectedRoomIds[0] }} <Button size="xs" variant="ghost" @click="selectedRoomIds = []">×</Button></Badge>
         <span class="query-summary">目录 {{ rooms.length }} 间 · 已选 {{ visibleRooms.length }} 间 · {{ visibleDates.length }} 个日期</span>
       </div>
@@ -176,13 +214,24 @@ function inspectRoom(room) {
       </TabsContent>
 
       <TabsContent value="matrix" class="view-content">
-        <div class="view-heading"><div><h2>时间对比</h2><p>按日期或周次比较，并可交换横纵轴。点击单元格查看完整预约。</p></div><div class="matrix-toolbar"><Button size="sm" :variant="matrixDimension === 'date' ? 'secondary' : 'ghost'" @click="matrixDimension = 'date'">按日期</Button><Button size="sm" :variant="matrixDimension === 'week' ? 'secondary' : 'ghost'" @click="matrixDimension = 'week'">按周次</Button><Button size="sm" variant="outline" @click="transposed = !transposed"><ArrowLeftRight :size="14" /> 交换横纵轴</Button></div></div>
+        <div class="view-heading"><div><h2>时间对比</h2><p>时间轴每格 30 分钟；选日期可逐日查看。汇总视图支持横纵比较。</p></div><div class="matrix-toolbar"><Button size="sm" :variant="matrixView === 'timeline' ? 'secondary' : 'ghost'" @click="matrixView = 'timeline'">半小时时间轴</Button><Button size="sm" :variant="matrixView === 'summary' ? 'secondary' : 'ghost'" @click="matrixView = 'summary'">汇总对比</Button></div></div>
+        <div v-if="matrixView === 'timeline'" class="timeline-pane">
+          <div class="timeline-toolbar">
+            <div class="timeline-date-nav"><Button size="icon-sm" variant="outline" aria-label="上一日期" :disabled="activeTimelineIndex <= 0" @click="moveTimelineDate(-1)"><ChevronLeft :size="14" /></Button><Popover><PopoverTrigger as-child><Button variant="outline" size="sm" :disabled="!activeTimelineDate">{{ activeTimelineDate ? `${activeTimelineDate} · ${shortDate(activeTimelineDate)}` : '没有符合筛选的日期' }}<ChevronDown :size="14" /></Button></PopoverTrigger><PopoverContent align="start" class="timeline-date-popover"><Button v-for="date in visibleDates" :key="date" variant="ghost" size="sm" class="timeline-date-option" @click="timelineDate = date">{{ date }} · {{ shortDate(date) }}</Button></PopoverContent></Popover><Button size="icon-sm" variant="outline" aria-label="下一日期" :disabled="activeTimelineIndex < 0 || activeTimelineIndex >= visibleDates.length - 1" @click="moveTimelineDate(1)"><ChevronRight :size="14" /></Button></div>
+            <div class="matrix-legend"><span class="legend-busy"></span> 占用 <span class="legend-free"></span> 空闲 <span class="legend-empty"></span> 查询中或失败</div>
+          </div>
+          <div class="table-panel timeline-scroll"><Table><TableHeader><TableRow><TableHead class="timeline-room-col" rowspan="2">教室 / Capacity</TableHead><TableHead :colspan="Math.max(1, timelineSlots.length)" class="timeline-date-head">{{ activeTimelineDate || '请选择日期' }}</TableHead></TableRow><TableRow><TableHead v-for="slot in timelineSlots" :key="slot.start" class="timeline-time-head">{{ slot.label }}</TableHead></TableRow></TableHeader><TableBody>
+            <TableRow v-for="room in visibleRooms" :key="room.id"><TableCell class="timeline-room-col"><strong>{{ shortName(room) }}</strong><small class="code-line">{{ room.id }} · {{ room.capacity }} 人</small></TableCell><TableCell v-for="slot in timelineSlots" :key="slot.start" class="timeline-cell"><Button variant="ghost" size="icon-xs" :class="['timeline-slot', !isRoomLoaded(room.id) ? 'timeline-pending' : slotBookings(room.id, slot).length ? 'timeline-occupied' : 'timeline-free']" :disabled="!isRoomLoaded(room.id) || !activeTimelineDate" :aria-label="`${shortName(room)} ${activeTimelineDate} ${slot.label} ${!isRoomLoaded(room.id) ? roomError(room.id) || '查询中' : slotBookings(room.id, slot).length ? `占用：${slotBookings(room.id, slot).map((booking) => booking.staff || booking.identifier).join('、')}` : '空闲'}`" :title="!isRoomLoaded(room.id) ? roomError(room.id) || '查询中' : slotBookings(room.id, slot).length ? slotBookings(room.id, slot).map((booking) => `${booking.start}–${booking.end} ${booking.staff || booking.identifier}`).join('\n') : `${slot.label} 空闲`" @click="openDetails(room, { kind: 'date', key: activeTimelineDate, label: shortDate(activeTimelineDate) }, slot)"><span class="sr-only">{{ slotBookings(room.id, slot).length ? '占用' : '空闲' }}</span></Button></TableCell></TableRow>
+            <TableRow v-if="!visibleRooms.length || !activeTimelineDate"><TableCell :colspan="Math.max(2, timelineSlots.length + 1)" class="empty-cell">{{ queryState === 'idle' ? '设置筛选条件并查询后查看半小时时间轴。' : '当前条件下没有可显示的教室或日期。' }}</TableCell></TableRow>
+          </TableBody></Table></div>
+        </div>
+        <div v-else class="summary-pane"><div class="matrix-toolbar summary-toolbar"><Button size="sm" :variant="matrixDimension === 'date' ? 'secondary' : 'ghost'" @click="matrixDimension = 'date'">按日期</Button><Button size="sm" :variant="matrixDimension === 'week' ? 'secondary' : 'ghost'" @click="matrixDimension = 'week'">按周次</Button><Button size="sm" variant="outline" @click="transposed = !transposed"><ArrowLeftRight :size="14" /> 交换横纵轴</Button></div>
         <div class="matrix-legend"><span class="legend-free"></span> 无预约 <span class="legend-busy"></span> 有预约 <span class="legend-empty"></span> 查询中或失败</div>
         <div class="table-panel matrix-scroll"><Table><TableHeader><TableRow><TableHead class="matrix-label-col">{{ transposed ? (matrixDimension === 'date' ? '日期' : '周次') : '教室 / 容量' }}</TableHead><TableHead v-for="column in transposed ? visibleRooms : matrixBuckets" :key="transposed ? column.id : column.key" class="matrix-data-col">{{ transposed ? shortName(column) : column.label }}<small v-if="transposed" class="code-line">{{ column.capacity }} 人</small></TableHead></TableRow></TableHeader><TableBody>
           <template v-if="!transposed"><TableRow v-for="room in visibleRooms" :key="room.id"><TableCell class="matrix-label-col"><strong>{{ shortName(room) }}</strong><small class="code-line">{{ room.id }} · {{ room.capacity }} 人</small></TableCell><TableCell v-for="bucket in matrixBuckets" :key="bucket.key" class="matrix-cell"><Button class="matrix-cell-button" variant="ghost" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room, bucket)"><span :class="['status-chip', !cellSummary(room.id, bucket) ? 'status-pending' : cellSummary(room.id, bucket).count ? 'status-booked' : 'status-free']">{{ !cellSummary(room.id, bucket) ? '待查询' : cellSummary(room.id, bucket).count ? `${cellSummary(room.id, bucket).count} 条预约` : '无预约' }}</span><small>{{ cellSummary(room.id, bucket) ? `空闲 ${cellSummary(room.id, bucket).freeHours}h` : '—' }}</small></Button></TableCell></TableRow></template>
           <template v-else><TableRow v-for="bucket in matrixBuckets" :key="bucket.key"><TableCell class="matrix-label-col"><strong>{{ bucket.label }}</strong><small class="code-line">{{ bucket.kind === 'week' ? '周次对比' : '日期对比' }}</small></TableCell><TableCell v-for="room in visibleRooms" :key="room.id" class="matrix-cell"><Button class="matrix-cell-button" variant="ghost" :disabled="!isRoomLoaded(room.id)" @click="openDetails(room, bucket)"><span :class="['status-chip', !cellSummary(room.id, bucket) ? 'status-pending' : cellSummary(room.id, bucket).count ? 'status-booked' : 'status-free']">{{ !cellSummary(room.id, bucket) ? '待查询' : cellSummary(room.id, bucket).count ? `${cellSummary(room.id, bucket).count} 条预约` : '无预约' }}</span><small>{{ cellSummary(room.id, bucket) ? `空闲 ${cellSummary(room.id, bucket).freeHours}h` : '—' }}</small></Button></TableCell></TableRow></template>
           <TableRow v-if="!matrixBuckets.length || !visibleRooms.length"><TableCell :colspan="(transposed ? visibleRooms.length : matrixBuckets.length) + 1" class="empty-cell">{{ queryState === 'idle' ? '设置筛选条件并查询。' : '请调整周次、日期或楼栋筛选。' }}</TableCell></TableRow>
-        </TableBody></Table></div>
+        </TableBody></Table></div></div>
       </TabsContent>
 
       <TabsContent value="capacity" class="view-content"><div class="view-heading"><div><h2>全部教室 Capacity</h2><p>{{ catalogUpdatedAt ? '已从原站读取最新房间名称与容量。' : '当前显示随项目提供的目录快照；点击右上角更新可向原站获取最新目录。' }}</p></div><div class="directory-actions"><div class="directory-search"><Search :size="14" /><Input v-model="directorySearch" placeholder="搜索教室、编号、楼栋" aria-label="搜索教室" /></div><Button size="sm" variant="outline" @click="capacityAscending = !capacityAscending">容量 {{ capacityAscending ? '↑' : '↓' }}</Button><Badge variant="secondary">{{ visibleDirectory.length }} / {{ rooms.length }}</Badge></div></div><div class="table-panel directory-panel"><Table><TableHeader><TableRow><TableHead class="number-col">#</TableHead><TableHead>教室名称</TableHead><TableHead>楼栋</TableHead><TableHead>原站房间 ID</TableHead><TableHead class="number-col">Capacity</TableHead><TableHead class="number-col">课表</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="(room, index) in visibleDirectory" :key="room.id"><TableCell class="number-col secondary-cell">{{ index + 1 }}</TableCell><TableCell><strong>{{ shortName(room) }}</strong><small class="code-line">{{ room.fullName }}</small></TableCell><TableCell class="secondary-cell">{{ room.building }}</TableCell><TableCell class="code-cell">{{ room.id }}</TableCell><TableCell class="number-col capacity-number">{{ room.capacity ?? '—' }}</TableCell><TableCell class="number-col"><Button size="xs" variant="outline" @click="inspectRoom(room)">查询此教室</Button></TableCell></TableRow><TableRow v-if="!visibleDirectory.length"><TableCell colspan="6" class="empty-cell">{{ loadingCatalog ? '正在加载教室目录…' : '没有匹配的教室。' }}</TableCell></TableRow></TableBody></Table></div></TabsContent>

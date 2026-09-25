@@ -12,6 +12,11 @@ A lightweight room availability browser for the University of Nottingham Ningbo 
 
 The frontend has four views: room list, building groups, date/week comparison,
 and a capacity directory. Blue is the selected default color scheme.
+Date range and academic weeks are mutually exclusive query modes. The time
+comparison view includes a 30-minute occupancy timeline with a date picker,
+plus a summary table for date/week comparisons. Invalid capacity ranges,
+dates, weekdays, and week selections are rejected before any source request.
+The UI shows progress as each room batch arrives.
 
 `GET /api/catalog` reads the current room list and academic week configuration
 from Scientia. The checked-in room list provides immediate filter options until
