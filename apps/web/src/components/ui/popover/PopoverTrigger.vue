@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { PopoverTrigger } from "reka-ui";
 
 const props = defineProps({

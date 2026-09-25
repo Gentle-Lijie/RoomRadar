@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { cn } from "@/lib/utils";
 
 const props = defineProps({
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -13,7 +13,7 @@ const props = defineProps({
 <template>
   <div
     data-slot="dialog-header"
-    :class="cn('gap-2 flex flex-col', props.class)"
+    :class="cn('ui-dialog-header', props.class)"
   >
     <slot />
   </div>

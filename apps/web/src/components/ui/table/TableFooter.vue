@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { cn } from "@/lib/utils";
 
 const props = defineProps({
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -13,9 +13,7 @@ const props = defineProps({
 <template>
   <tfoot
     data-slot="table-footer"
-    :class="
-      cn('bg-muted/50 border-t font-medium [&>tr]:last:border-b-0', props.class)
-    "
+    :class="cn('ui-table-footer', props.class)"
   >
     <slot />
   </tfoot>

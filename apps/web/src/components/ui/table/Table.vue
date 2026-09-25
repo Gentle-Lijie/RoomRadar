@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { cn } from "@/lib/utils";
 
 const props = defineProps({
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -11,10 +11,10 @@ const props = defineProps({
 </script>
 
 <template>
-  <div data-slot="table-container" class="relative w-full overflow-x-auto">
+  <div data-slot="table-container" class="ui-table-container">
     <table
       data-slot="table"
-      :class="cn('w-full caption-bottom text-sm', props.class)"
+      :class="cn('ui-table', props.class)"
     >
       <slot />
     </table>

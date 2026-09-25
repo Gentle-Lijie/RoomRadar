@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { cn } from "@/lib/utils";
 
 const props = defineProps({
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -13,7 +13,7 @@ const props = defineProps({
 <template>
   <div
     data-slot="popover-title"
-    :class="cn('font-medium cn-font-heading', props.class)"
+    :class="cn('ui-popover-title', props.class)"
   >
     <slot />
   </div>

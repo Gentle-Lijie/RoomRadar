@@ -1,15 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import { reactiveOmit } from "@vueuse/core";
 import { TabsList } from "reka-ui";
 import { cn } from "@/lib/utils";
-import { tabsListVariants } from ".";
 
 const props = defineProps({
   loop: { type: Boolean, required: false },
   asChild: { type: Boolean, required: false },
   as: { type: null, required: false },
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -24,7 +23,7 @@ const delegatedProps = reactiveOmit(props, "class", "variant");
     data-slot="tabs-list"
     :data-variant="variant"
     v-bind="delegatedProps"
-    :class="cn(tabsListVariants({ variant }), props.class)"
+    :class="cn('ui-tabs-list group/tabs-list', props.class)"
   >
     <slot />
   </TabsList>

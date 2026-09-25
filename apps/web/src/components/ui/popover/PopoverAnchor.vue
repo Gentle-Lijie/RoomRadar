@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { PopoverAnchor } from "reka-ui";
 
 const props = defineProps({

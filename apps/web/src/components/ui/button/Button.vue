@@ -1,13 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import { Primitive } from "reka-ui";
 import { cn } from "@/lib/utils";
-import { buttonVariants } from ".";
 
 const props = defineProps({
-  variant: { type: null, required: false },
-  size: { type: null, required: false },
+  variant: { type: null, required: false, default: "default" },
+  size: { type: null, required: false, default: "default" },
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -23,7 +22,7 @@ const props = defineProps({
     :data-size="size"
     :as="as"
     :as-child="asChild"
-    :class="cn(buttonVariants({ variant, size }), props.class)"
+    :class="cn('ui-button', props.class)"
   >
     <slot />
   </Primitive>

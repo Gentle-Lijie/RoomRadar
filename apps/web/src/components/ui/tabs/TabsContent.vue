@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { reactiveOmit } from "@vueuse/core";
 import { TabsContent } from "reka-ui";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,7 @@ const props = defineProps({
   asChild: { type: Boolean, required: false },
   as: { type: null, required: false },
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -21,7 +21,7 @@ const delegatedProps = reactiveOmit(props, "class");
 <template>
   <TabsContent
     data-slot="tabs-content"
-    :class="cn('text-sm flex-1 outline-none', props.class)"
+    :class="cn('ui-tabs-content', props.class)"
     v-bind="delegatedProps"
   >
     <slot />

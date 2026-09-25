@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { reactiveOmit } from "@vueuse/core";
 import { DialogOverlay } from "reka-ui";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,7 @@ const props = defineProps({
   asChild: { type: Boolean, required: false },
   as: { type: null, required: false },
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -21,12 +21,7 @@ const delegatedProps = reactiveOmit(props, "class");
   <DialogOverlay
     data-slot="dialog-overlay"
     v-bind="delegatedProps"
-    :class="
-      cn(
-        'data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs fixed inset-0 isolate z-50',
-        props.class,
-      )
-    "
+    :class="cn('ui-dialog-overlay', props.class)"
   >
     <slot />
   </DialogOverlay>

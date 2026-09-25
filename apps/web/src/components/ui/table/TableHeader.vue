@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { cn } from "@/lib/utils";
 
 const props = defineProps({
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -11,7 +11,7 @@ const props = defineProps({
 </script>
 
 <template>
-  <thead data-slot="table-header" :class="cn('[&_tr]:border-b', props.class)">
+  <thead data-slot="table-header" :class="cn('ui-table-header', props.class)">
     <slot />
   </thead>
 </template>

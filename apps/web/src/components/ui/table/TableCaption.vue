@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { cn } from "@/lib/utils";
 
 const props = defineProps({
   class: {
-    type: [Boolean, null, String, Object, Array],
+    type: null,
     required: false,
     skipCheck: true,
   },
@@ -13,7 +13,7 @@ const props = defineProps({
 <template>
   <caption
     data-slot="table-caption"
-    :class="cn('text-muted-foreground mt-4 text-sm', props.class)"
+    :class="cn('ui-table-caption', props.class)"
   >
     <slot />
   </caption>
