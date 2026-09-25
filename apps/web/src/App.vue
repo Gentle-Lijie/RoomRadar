@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import logoUrl from '@brand/logo-64.png';
+import bannerUrl from '@brand/banner.png';
 import { ChevronDown, RotateCcw, Search, ArrowLeftRight, Info, RefreshCw, ChevronLeft, ChevronRight, LoaderCircle, X, Building2, LogOut } from '@lucide/vue';
 
 interface MatrixBucket { key: string | number; label: string; kind: 'date' | 'week' }
@@ -40,6 +41,23 @@ const {
   loginMrb, submitMrbMfa, disconnectMrb, loadMrbCatalog, resetMrbLoginDialog,
 } = useRoomSearch();
 const matrixDimension = ref<'date' | 'week'>('date');
+const WELCOME_STORAGE_KEY = 'roomradar:welcome-dismissed';
+const welcomeOpen = ref(false);
+onMounted(() => {
+  try {
+    if (!localStorage.getItem(WELCOME_STORAGE_KEY)) welcomeOpen.value = true;
+  } catch {
+    welcomeOpen.value = true;
+  }
+});
+function dismissWelcome() {
+  try {
+    localStorage.setItem(WELCOME_STORAGE_KEY, '1');
+  } catch {
+    /* localStorage 不可用时按已展示处理 */
+  }
+  welcomeOpen.value = false;
+}
 const matrixView = ref('timeline');
 const transposed = ref(false);
 const detailOpen = ref(false);
@@ -332,6 +350,19 @@ function cellStatus(roomId: string, bucket: MatrixBucket) {
 
       <TabsContent value="capacity" class="view-content"><div class="view-heading"><div><h2>全部教室 Capacity</h2><p>{{ catalogUpdatedAt ? '已从原站读取最新房间名称与容量。' : '当前显示随项目提供的目录快照；点击右上角更新可向原站获取最新目录。' }}</p></div><div class="directory-actions"><div class="directory-search"><Search :size="14" /><Input v-model="directorySearch" placeholder="搜索教室、编号、楼栋" aria-label="搜索教室" /></div><Button size="sm" variant="outline" @click="capacityAscending = !capacityAscending">容量 {{ capacityAscending ? '↑' : '↓' }}</Button><Badge variant="secondary">{{ visibleDirectory.length }} / {{ rooms.length }}</Badge></div></div><div class="table-panel directory-panel"><Table><TableHeader><TableRow><TableHead class="number-col">#</TableHead><TableHead>教室名称</TableHead><TableHead>楼栋</TableHead><TableHead>原站房间 ID</TableHead><TableHead class="number-col">Capacity</TableHead><TableHead class="number-col">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="(room, index) in visibleDirectory" :key="room.id"><TableCell class="number-col secondary-cell">{{ index + 1 }}</TableCell><TableCell><strong>{{ shortName(room) }}</strong><Badge v-if="room.source === 'mrb'" variant="outline" class="source-badge">会议室</Badge><Badge v-if="room.source === 'mrb' && room.enabled === false" variant="outline" class="source-badge source-badge-off">停用</Badge><small class="code-line">{{ room.fullName }}</small></TableCell><TableCell class="secondary-cell">{{ room.building }}</TableCell><TableCell class="code-cell">{{ displayId(room) }}</TableCell><TableCell class="number-col capacity-number">{{ room.capacity ?? '—' }}</TableCell><TableCell class="number-col"><Button size="xs" variant="outline" @click="inspectRoom(room)">筛选此教室</Button></TableCell></TableRow><TableRow v-if="!visibleDirectory.length"><TableCell colspan="6" class="empty-cell">{{ loadingCatalog ? '正在加载教室目录…' : '没有匹配的教室。' }}</TableCell></TableRow></TableBody></Table></div></TabsContent>
     </Tabs>
+
+    <Dialog v-model:open="welcomeOpen" @update:open="(open: boolean) => { if (!open) dismissWelcome(); }">
+      <DialogContent class="welcome-dialog">
+        <div class="welcome-banner"><img :src="bannerUrl" alt="RoomRadar 横幅" /></div>
+        <DialogHeader>
+          <DialogTitle>欢迎使用 RoomRadar</DialogTitle>
+          <DialogDescription>选好时间、教学楼或人数，剩下的交给它。数据实时来自原站，不缓存、不存储——愿你这学期再也不用和 Scientia 的老网页搏斗。</DialogDescription>
+        </DialogHeader>
+        <div class="welcome-actions">
+          <Button size="sm" @click="dismissWelcome">开始使用</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
 
     <Dialog v-model:open="mrbLoginOpen" @update:open="resetMrbLoginDialog">
       <DialogContent class="mrb-login-dialog">
