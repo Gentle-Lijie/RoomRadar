@@ -141,6 +141,7 @@ export function useRoomSearch() {
   const mrbUser = ref<MrbUser | null>(safeJsonParse<MrbUser>(localStorage.getItem('mrb.user')));
   const mrbLoginOpen = ref(false);
   const mrbLoginForm = ref({ username: '', password: '' });
+  const mrbManualToken = ref('');
   const mrbMfa = ref<{ stateId: string } | null>(null);
   const mrbMfaCode = ref('');
   const mrbLoginError = ref('');
@@ -166,6 +167,27 @@ export function useRoomSearch() {
     mrbMfaCode.value = '';
     mrbLoginError.value = '';
     mrbLoginForm.value.password = '';
+  }
+
+  // Fallback for accounts the school SSO challenges with an interactive MFA
+  // proof-up on this server's network: paste a Bearer token obtained where
+  // login works (tokens are IP-independent, ~12 h validity).
+  async function connectMrbManual() {
+    const token = mrbManualToken.value.trim();
+    if (!token || mrbLoggingIn.value) return;
+    mrbLoggingIn.value = true;
+    mrbLoginError.value = '';
+    try {
+      const response = await fetch(`${apiBase}/api/mrb/session`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error ?? `Token 无效（HTTP ${response.status}）`);
+      applyMrbSession({ token, user: payload.user ?? null });
+      mrbManualToken.value = '';
+    } catch (error) {
+      mrbLoginError.value = messageOf(error, 'Token 连接失败');
+    } finally {
+      mrbLoggingIn.value = false;
+    }
   }
 
   async function loginMrb() {
@@ -610,7 +632,7 @@ export function useRoomSearch() {
     directorySearch, capacityAscending, queryState, queryDirty, queryError, progress, fetchedAt,
     buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, matchingRooms, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
     dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery, cancelActiveQuery,
-    mrbToken, mrbUser, mrbRooms, mrbLoginOpen, mrbLoginForm, mrbMfa, mrbMfaCode, mrbLoginError, mrbLoggingIn, mrbCatalogLoading, mrbError,
-    loginMrb, submitMrbMfa, disconnectMrb, loadMrbCatalog, resetMrbLoginDialog,
+    mrbToken, mrbUser, mrbRooms, mrbLoginOpen, mrbLoginForm, mrbManualToken, mrbMfa, mrbMfaCode, mrbLoginError, mrbLoggingIn, mrbCatalogLoading, mrbError,
+    loginMrb, submitMrbMfa, connectMrbManual, disconnectMrb, loadMrbCatalog, resetMrbLoginDialog,
   };
 }

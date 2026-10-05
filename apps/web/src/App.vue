@@ -37,8 +37,8 @@ const {
   directorySearch, capacityAscending, queryState, queryDirty, queryError, progress, fetchedAt,
   buildingNames, weekOptions, effectiveWeeks, visibleDates, validationErrors, canQuery, matchingRooms, visibleDirectory, visibleRooms, visibleBuildings, visibleBookings, failedCount, focusDate,
   dateOf, dayOf, weekOf, bookingsForRoom, isRoomLoaded, roomError, roomUrl, roomGridUrl, freeRanges, cellSummary, loadCatalog, runQuery, cancelActiveQuery,
-  mrbToken, mrbUser, mrbLoginOpen, mrbLoginForm, mrbMfa, mrbMfaCode, mrbLoginError, mrbLoggingIn, mrbCatalogLoading, mrbError,
-  loginMrb, submitMrbMfa, disconnectMrb, loadMrbCatalog, resetMrbLoginDialog,
+  mrbToken, mrbUser, mrbLoginOpen, mrbLoginForm, mrbMfa, mrbMfaCode, mrbLoginError, mrbLoggingIn, mrbCatalogLoading, mrbError, mrbManualToken,
+  loginMrb, submitMrbMfa, connectMrbManual, disconnectMrb, loadMrbCatalog, resetMrbLoginDialog,
 } = useRoomSearch();
 const matrixDimension = ref<'date' | 'week'>('date');
 const WELCOME_STORAGE_KEY = 'roomradar:welcome-dismissed';
@@ -382,6 +382,11 @@ function cellStatus(roomId: string, bucket: MatrixBucket) {
           <Button variant="outline" size="sm" :disabled="mrbLoggingIn" @click="mrbLoginOpen = false">取消</Button>
           <Button size="sm" :disabled="mrbLoggingIn || (!mrbMfa && (!mrbLoginForm.username.trim() || !mrbLoginForm.password)) || (mrbMfa && !mrbMfaCode.trim())" @click="mrbMfa ? submitMrbMfa() : loginMrb()"><LoaderCircle v-if="mrbLoggingIn" :size="14" class="animate-spin" />{{ mrbMfa ? '提交验证码' : '登录' }}</Button>
         </div>
+        <details class="manual-token">
+          <summary>学校 SSO 要求额外验证？手动连接</summary>
+          <div class="login-field"><label for="mrb-token">Token</label><Input id="mrb-token" v-model="mrbManualToken" autocomplete="off" placeholder="粘贴在其他可用网络登录后获取的 Token" @keyup.enter="connectMrbManual" /></div>
+          <Button variant="outline" size="sm" :disabled="mrbLoggingIn || !mrbManualToken.trim()" @click="connectMrbManual()"><LoaderCircle v-if="mrbLoggingIn" :size="14" class="animate-spin" />连接 Token</Button>
+        </details>
       </DialogContent>
     </Dialog>
 

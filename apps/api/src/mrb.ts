@@ -323,6 +323,18 @@ async function mrbApi(path: string, token: string, init: RequestInit = {}) {
   return payload.data;
 }
 
+// Validate a manually supplied token and return the account it belongs to.
+export async function mrbUserInfo(token: string) {
+  const response = await fetch(`${MRB_BASE}/api/ace-upms-provider/sys-user/info`, {
+    headers: { ...BROWSER_HEADERS, Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    signal: AbortSignal.timeout(20_000),
+  }).catch(() => null);
+  if (!response?.ok) throw badRequest('Token 无效或已过期，请重新获取', 401);
+  const payload = await response.json().catch(() => null) as { code?: number; data?: { sysUser?: { name?: string; userId?: string } } } | null;
+  if (payload?.code !== 200) throw badRequest('Token 无效或已过期，请重新获取', 401);
+  return { name: payload.data?.sysUser?.name ?? '', userId: payload.data?.sysUser?.userId ?? '' };
+}
+
 async function verifyToken(token: string) {
   const response = await fetch(`${MRB_BASE}/api/ace-upms-provider/sys-user/info`, {
     headers: { ...BROWSER_HEADERS, Authorization: `Bearer ${token}`, Accept: 'application/json' },

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import type { Request, Response } from 'express';
 import { getCatalog } from './source.js';
 import { queryReports, schedulerStats } from './scheduler.js';
-import { mrbLogin, mrbLoginMfa, mrbRooms, mrbTimetable } from './mrb.js';
+import { mrbLogin, mrbLoginMfa, mrbRooms, mrbTimetable, mrbUserInfo } from './mrb.js';
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -92,6 +92,15 @@ app.post('/api/mrb/login/mfa', async (request: Request, response: Response) => {
     if (typeof stateId !== 'string' || !/^[A-Za-z0-9-]{10,64}$/.test(stateId) || typeof code !== 'string' || !code.trim()) throw badRequest('请输入验证码');
     const result = await mrbLoginMfa(stateId, code.trim());
     response.json(result);
+  } catch (error) {
+    sendError(request, response, error);
+  }
+});
+
+app.get('/api/mrb/session', async (request: Request, response: Response) => {
+  response.setHeader('Cache-Control', 'no-store');
+  try {
+    response.json({ user: await mrbUserInfo(mrbToken(request)) });
   } catch (error) {
     sendError(request, response, error);
   }
