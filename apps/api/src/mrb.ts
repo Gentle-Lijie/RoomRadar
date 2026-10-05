@@ -145,7 +145,7 @@ function visibleInputs(form: ParsedForm) {
   return Object.entries(form.fields).filter(([, field]) => !['hidden', 'checkbox', 'submit', 'button'].includes(field.type));
 }
 
-type LoginOutcome = { token: string } | { mfaForm: ParsedForm } | null;
+type LoginOutcome = { token: string } | { mfaForm: ParsedForm } | { proofUp: true } | null;
 
 // Walk the redirect / auto-submit chain after a credential or MFA step.
 // ADFS drives its Azure MFA flow through interstitial pages whose forms
@@ -176,6 +176,12 @@ async function finishLogin(session: Session, response: Response): Promise<LoginO
     }
     const form = parseForm(html, session.url);
     if (!form) return unknownPage('no form', session.url, html);
+    // Azure's risk engine serves an interactive MFA registration wizard
+    // ("出于安全原因，我们需要其他信息来验证你的帐户") for logins from
+    // unfamiliar IPs; that flow needs a real browser and cannot be walked.
+    if (/需要其他信息来验证|More information required/i.test(html) && !/VerificationCode/i.test(html)) {
+      return { proofUp: true };
+    }
     if (Object.keys(form.fields).some((name) => /SAMLResponse/i.test(name))) {
       response = await postForm(session, form);
       html = await response.text();
@@ -249,6 +255,10 @@ export async function mrbLogin(username: string, password: string) {
     return { stateId, mfaRequired: true };
   }
   loginSessions.delete(stateId);
+  if (outcome && 'proofUp' in outcome) {
+    loginSessions.delete(stateId);
+    throw badRequest('学校 SSO 认为本次登录来自陌生网络，要求先完成交互式的 MFA 风险验证，程序无法代为完成。请先在学校登录页手动完成一次多因素验证设置后重试', 403);
+  }
   if (!outcome || !('token' in outcome)) throw badRequest('学校账号或密码错误，或 SSO 登录被拒绝', 401);
   return verifyToken(outcome.token);
 }
@@ -274,6 +284,10 @@ export async function mrbLoginMfa(stateId: string, code: string) {
     throw badRequest('验证码不正确，请重试', 401);
   }
   loginSessions.delete(stateId);
+  if (outcome && 'proofUp' in outcome) {
+    loginSessions.delete(stateId);
+    throw badRequest('学校 SSO 要求先完成交互式的 MFA 风险验证，程序无法代为完成。请先在学校登录页手动完成一次多因素验证设置后重试', 403);
+  }
   if (!outcome || !('token' in outcome)) throw badRequest('SSO 验证失败，请重新登录', 401);
   return verifyToken(outcome.token);
 }
