@@ -153,6 +153,16 @@ type LoginOutcome = { token: string } | { mfaForm: ParsedForm } | null;
 // Context) and reposts to the current URL; the next one exposes the
 // VerificationCode input. Resolves with the bearer token, `null` for bad
 // credentials, or `{ mfaForm }` when a code is required.
+// finishLogin reports "rejected" (null) both for genuinely bad credentials
+// and for pages the walker doesn't recognise; log the page so 401s are
+// diagnosable — a transient SSO/WAF error page otherwise looks identical to
+// a wrong password.
+function unknownPage(reason: string, url: string, html: string): null {
+  const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+  console.warn(`[mrb] login ended unrecognized (${reason}) at ${url}: ${text}`);
+  return null;
+}
+
 async function finishLogin(session: Session, response: Response): Promise<LoginOutcome> {
   let html = await response.text();
   for (let hop = 0; hop < 14; hop += 1) {
@@ -165,7 +175,7 @@ async function finishLogin(session: Session, response: Response): Promise<LoginO
       continue;
     }
     const form = parseForm(html, session.url);
-    if (!form) return null;
+    if (!form) return unknownPage('no form', session.url, html);
     if (Object.keys(form.fields).some((name) => /SAMLResponse/i.test(name))) {
       response = await postForm(session, form);
       html = await response.text();
@@ -175,7 +185,7 @@ async function finishLogin(session: Session, response: Response): Promise<LoginO
     const hasContext = 'Context' in form.fields;
     if (visible.length) {
       if (hasContext || visible.some(([name]) => /verif|otp|code/i.test(name))) return { mfaForm: form };
-      return null; // back at the username/password form -> rejected credentials
+      return unknownPage('back at credentials form', session.url, html); // rejected credentials
     }
     if (hasContext && form.fields.AuthMethod?.value) {
       // MFA interstitial: emulate the page's autoSubmit(loginForm).
@@ -183,9 +193,9 @@ async function finishLogin(session: Session, response: Response): Promise<LoginO
       html = await response.text();
       continue;
     }
-    return null;
+    return unknownPage('no visible inputs / no AuthMethod', session.url, html);
   }
-  return null;
+  return unknownPage('hop limit reached', session.url, html);
 }
 
 interface LoginSession {
