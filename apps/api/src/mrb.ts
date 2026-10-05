@@ -18,6 +18,19 @@ function badRequest(message: string, status = 400): StatusError {
   return error;
 }
 
+// Node's fetch reports DNS/connection/TLS failures as a bare
+// "TypeError: fetch failed"; the real reason (ECONNRESET, ENOTFOUND, …)
+// sits in error.cause. Surface it and mark the failure transient (503)
+// instead of letting the generic 502 "fetch failed" leak to users.
+function networkError(action: string, error: unknown): StatusError {
+  if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+    return badRequest(`学校系统响应超时（${action}），请稍后重试`, 504);
+  }
+  const cause = (error as { cause?: { code?: string; message?: string } } | null)?.cause;
+  const detail = cause?.code ?? cause?.message ?? (error instanceof Error ? error.message : String(error));
+  return badRequest(`连接学校系统失败（${action}：${detail}），请稍后重试`, 503);
+}
+
 function decodeEntities(text: string) {
   return text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
@@ -64,12 +77,17 @@ class Session {
   }
   async go(url: string, options: GoOptions = {}) {
     const cookie = this.header(url);
-    const response = await fetch(url, {
-      ...options,
-      redirect: 'manual',
-      signal: options.signal ?? AbortSignal.timeout(30_000),
-      headers: { ...BROWSER_HEADERS, ...(options.headers ?? {}), ...(cookie ? { Cookie: cookie } : {}) },
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        ...options,
+        redirect: 'manual',
+        signal: options.signal ?? AbortSignal.timeout(30_000),
+        headers: { ...BROWSER_HEADERS, ...(options.headers ?? {}), ...(cookie ? { Cookie: cookie } : {}) },
+      });
+    } catch (error) {
+      throw networkError(new URL(url).host, error);
+    }
     this.url = url;
     if (!options.method) this.referer = url;
     this.store(response);
@@ -251,17 +269,22 @@ export async function mrbLoginMfa(stateId: string, code: string) {
 }
 
 async function mrbApi(path: string, token: string, init: RequestInit = {}) {
-  const response = await fetch(`${MRB_API}${path}`, {
-    ...init,
-    headers: {
-      ...BROWSER_HEADERS,
-      ...(init.headers as Record<string, string> | undefined),
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    signal: init.signal ?? AbortSignal.timeout(45_000),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${MRB_API}${path}`, {
+      ...init,
+      headers: {
+        ...BROWSER_HEADERS,
+        ...(init.headers as Record<string, string> | undefined),
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      signal: init.signal ?? AbortSignal.timeout(45_000),
+    });
+  } catch (error) {
+    throw networkError(path, error);
+  }
   if (response.status === 401) throw badRequest('会议室系统登录已过期，请重新连接', 401);
   const text = await response.text();
   if (/Request Rejected/i.test(text)) throw badRequest('请求被校园网防火墙拦截，请稍后重试', 503);
@@ -306,8 +329,67 @@ async function buildingIndex(token: string, signal?: AbortSignal) {
   return (nodeId: string) => {
     let node = nodes.get(nodeId);
     while (node?.parent) node = nodes.get(node.parent);
-    return node?.name ?? '其他会议室';
+    return canonicalBuilding(node?.name ?? '');
   };
+}
+
+// MRB labels several buildings with a "The …" prefix and abbreviation suffix,
+// while the Scientia catalog uses the plain names; aligning them here keeps
+// the combined building filter from showing near-duplicates.
+const BUILDING_ALIASES: Record<string, string> = {
+  'The Portland Building (PB)': 'Portland Building',
+  'The Sir Peter Mansfield Building (PMB)': 'The Sir Peter Mansfield Building',
+  'The Lord Dearing Building (DB)': 'The Lord Dearing Building',
+  'YANG Fujia Building (TB)': 'YANG Fujia Building',
+  'The D.H Laurence Auditorium (New Audi)': 'D.H Lawrence Auditorium',
+};
+
+function canonicalBuilding(name: string) {
+  const trimmed = name.trim();
+  return BUILDING_ALIASES[trimmed] ?? trimmed;
+}
+
+// Display names follow "BUILDING CODE - ROOM NO": the code identifies the
+// building at a glance and the room number keeps whatever the source name
+// carries (floor prefix, sub-number, descriptor).
+const BUILDING_CODES: Record<string, string> = {
+  'The Library': 'Library',
+  'Trent Building': 'Trent',
+  'Portland Building': 'PB',
+  'The Sir Peter Mansfield Building': 'PMB',
+  'The Lord Dearing Building': 'DB',
+  'Innovation and Enterprise Building (IEB)': 'IEB',
+  'Sir David and Lady Susan Greenaway Building (IAMET)': 'IAMET',
+  'YANG Fujia Building': 'YFB',
+  'Siyuan Auditorium': 'SIYUAN',
+  'D.H Lawrence Auditorium': 'AUDI',
+  'New International Conference Center (NICC)': 'NICC',
+  'Outdoor Spaces': 'Outdoor',
+};
+
+// Buildings that were renamed keep their old code on some room names
+// ("TB Atrium" under YANG Fujia Building); strip those prefixes too.
+const LEGACY_CODES: Record<string, string> = { 'YANG Fujia Building': 'TB' };
+
+// Raw MRB space names double as display names, which reads badly in lists
+// ("Siyuan Auditorium – 2F Platform", "2F - Project Room 01 (Library)",
+// "IAMET304 (Staff Meeting Room)"). Rebuild them as "CODE - ROOM NO"; the
+// raw name stays in fullName.
+function shortSpaceName(raw: string, building: string) {
+  const code = building === 'Off Campus'
+    ? /^[A-Za-z]+/.exec(raw.trim())?.[0].toUpperCase() ?? 'OFF'
+    : BUILDING_CODES[building] ?? building.replace(/\s*\(.*\)\s*/, '').trim();
+  let rest = raw.trim();
+  // Virtual DB rooms map to physical ones ("Online Teaching Room-1 (LDB A02)");
+  // show that code, normalised LDB -> DB (Lord Dearing Building).
+  const online = /^Online Teaching Room[- ]\d+\s*\((.+)\)$/i.exec(rest);
+  if (online) rest = online[1].trim().replace(/^LDB\s*/i, '');
+  if (online) return `${code} - ${rest}`;
+  const legacy = LEGACY_CODES[building];
+  const prefixes = [building, code, legacy].filter(Boolean).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  rest = rest.replace(new RegExp(`^(?:${prefixes.join('|')})[\\s\\-–—_]*`, 'i'), '');
+  rest = rest.replace(/\s*\((?:Library|Off Campus|Staff Meeting Room)\)\s*$/i, '');
+  return rest.trim() ? `${code} - ${rest.trim()}` : `${code} - ${raw.trim()}`;
 }
 
 const SHANGHAI_OFFSET = 8 * 3_600_000;
@@ -340,7 +422,7 @@ export async function mrbRooms(token: string, signal?: AbortSignal) {
   if (!Array.isArray(spaces) || !spaces.length) throw badRequest('会议室目录为空', 502);
   return spaces.map((space) => ({
     id: space.id,
-    name: space.spaceName.trim(),
+    name: shortSpaceName(space.spaceName ?? '', buildingOf(space.nodeStructIdList?.[0] ?? '')),
     fullName: space.spaceName.trim(),
     building: buildingOf(space.nodeStructIdList?.[0] ?? ''),
     capacity: space.capacity ?? null,

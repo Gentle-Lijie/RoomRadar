@@ -1,5 +1,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import initialRooms from './data/rooms.json';
+import { formatScientiaName } from './lib/roomName';
+
+const withFormattedNames = (rooms: Room[]) => rooms.map((room) => ({ ...room, name: formatScientiaName(room.building, room.name) }));
 
 // 后端地址：开发时走 Vite 代理（留空），部署时由 .env 的 VITE_API_BASE 注入。
 const apiBase = import.meta.env.VITE_API_BASE ?? '';
@@ -103,7 +106,7 @@ export function useRoomSearch() {
   const today = shanghaiToday();
   const initialEnd = shiftDate(today, 6);
   const initialWeek = (date: string) => Math.floor((Date.parse(`${date}T00:00:00Z`) - Date.parse('2026-09-21T00:00:00Z')) / (7 * MS_DAY)) + 1;
-  const scientiaRooms = ref<Room[]>(initialRooms as Room[]);
+  const scientiaRooms = ref<Room[]>(withFormattedNames(initialRooms as Room[]));
   const mrbRooms = ref<Room[]>([]);
   const rooms = computed<Room[]>(() => [...scientiaRooms.value, ...mrbRooms.value]);
   const resultRooms = ref<Room[]>([]);
@@ -423,7 +426,7 @@ export function useRoomSearch() {
       const directoryChanged = (payload.academicStart && payload.academicStart !== academicStart.value)
         || (Array.isArray(payload.rooms) && payload.rooms.map((room: Room) => room.id).join('\u0000') !== previousIds);
       if (Array.isArray(payload.rooms)) {
-        scientiaRooms.value = payload.rooms;
+        scientiaRooms.value = withFormattedNames(payload.rooms);
         catalogUpdatedAt.value = payload.updatedAt;
       }
       if (payload.academicStart) academicStart.value = payload.academicStart;

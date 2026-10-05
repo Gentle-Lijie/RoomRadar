@@ -26,8 +26,11 @@ function badRequest(message: string) {
 
 function messageOf(error: unknown) { return error instanceof Error ? error.message : String(error); }
 
-function sendError(response: Response, error: unknown) {
+function sendError(request: Request, response: Response, error: unknown) {
   const status = (error as { status?: number } | null)?.status ?? 502;
+  // Unexpected (5xx) failures never reach the client with useful detail, so
+  // log them here or the pm2 log stays silent while users see errors.
+  if (status >= 500) console.error(`[api] ${request.method} ${request.originalUrl ?? request.url} -> ${status}`, error);
   response.status(status).json({ error: messageOf(error) });
 }
 
@@ -78,7 +81,7 @@ app.post('/api/mrb/login', async (request: Request, response: Response) => {
     const result = await mrbLogin(username.trim(), password);
     response.json(result);
   } catch (error) {
-    sendError(response, error);
+    sendError(request, response, error);
   }
 });
 
@@ -90,7 +93,7 @@ app.post('/api/mrb/login/mfa', async (request: Request, response: Response) => {
     const result = await mrbLoginMfa(stateId, code.trim());
     response.json(result);
   } catch (error) {
-    sendError(response, error);
+    sendError(request, response, error);
   }
 });
 
@@ -100,7 +103,7 @@ app.get('/api/mrb/rooms', async (request: Request, response: Response) => {
     const rooms = await mrbRooms(mrbToken(request));
     response.json({ rooms, updatedAt: new Date().toISOString() });
   } catch (error) {
-    sendError(response, error);
+    sendError(request, response, error);
   }
 });
 
@@ -115,7 +118,7 @@ app.post('/api/mrb/timetable', async (request: Request, response: Response) => {
     const results = await mrbTimetable(mrbToken(request), [...new Set(body.roomIds)] as string[], dateFrom, dateTo);
     response.json({ results, fetchedAt: new Date().toISOString() });
   } catch (error) {
-    sendError(response, error);
+    sendError(request, response, error);
   }
 });
 
@@ -163,7 +166,7 @@ app.post('/api/availability/stream', async (request: Request, response: Response
       response.write(`${JSON.stringify({ type: 'error', error: messageOf(error) })}\n`);
       response.end();
     } else {
-      sendError(response, error);
+      sendError(request, response, error);
     }
   }
 });

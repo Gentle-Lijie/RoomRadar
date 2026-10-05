@@ -172,7 +172,7 @@ function shortDate(isoDate: string | null) {
   return `${isoDate.slice(5, 7)}/${isoDate.slice(8, 10)} 周${weekdayNames[dayOf(isoDate) - 1]}`;
 }
 function shortName(room: Room) {
-  return room.name.replace(new RegExp(`^${room.building.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s-]*`, 'i'), '').trim() || room.name;
+  return room.name.replace(new RegExp(`^${room.building.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\-–—_]*`, 'i'), '').trim() || room.name;
 }
 function displayId(room: Room) {
   return room.source === 'mrb' ? (room.spaceNo || room.id.slice(4)) : room.id;
